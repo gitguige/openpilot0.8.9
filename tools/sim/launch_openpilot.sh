@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export PYTHONPATH=$PYTHONPATH:/home/guige/Research/ADS/Oct20/openpilot-9.11/
+export PYTHONPATH=$PYTHONPATH:/home/guige/Research/ADS/Oct20/openpilot0.8.9/
 export PASSIVE="0"
 export NOBOARD="1"
 export SIMULATION="1"
