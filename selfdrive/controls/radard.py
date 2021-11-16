@@ -217,6 +217,8 @@ def radard_thread(sm=None, pm=None, can_sock=None):
     dat = RD.update(sm, rr, enable_lead)
     dat.radarState.cumLagMs = -rk.remaining*1000.
 
+    # print(dat)
+
     pm.send('radarState', dat)
 
     # *** publish tracks for UI debugging (keep last) ***

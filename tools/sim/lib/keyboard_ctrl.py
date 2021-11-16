@@ -43,6 +43,7 @@ def keyboard_poll_thread(q: 'Queue[str]'):
       q.put("cruise_up")
     elif c == '2':
       q.put("cruise_down")
+      print("cruise_down")
     elif c == '3':
       q.put("cruise_cancel")
     elif c == 'w':

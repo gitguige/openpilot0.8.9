@@ -125,8 +125,11 @@ def manager_thread():
   ensure_running(managed_processes.values(), started=False, not_run=ignore)
 
   started_prev = False
-  sm = messaging.SubMaster(['deviceState'])
+  sm = messaging.SubMaster(['deviceState']) #,'controlsState'
   pm = messaging.PubMaster(['managerState'])
+
+  alertText1_list=[]
+  alertType_list = []
 
   # print_enable = 1
   while True:
@@ -159,6 +162,21 @@ def manager_thread():
     msg = messaging.new_message('managerState')
     msg.managerState.processes = [p.get_process_state_msg() for p in managed_processes.values()]
     pm.send('managerState', msg)
+
+    # #controlsState
+    # alertText1 = sm['controlsState'].alertText1
+    # alertText2 = sm['controlsState'].alertText2
+    # alertType  = sm['controlsState'].alertType
+
+    # if alertType and alertType not in alertType_list and alertText1 not in alertText1_list:
+    #   alertText1_list.append(alertText1)
+    #   alertType_list.append(alertType)
+    #   # if(alerttime== -1 and 'startupMaster/permanent' not in alertType and 'buttonEnable/enable' not in alertType):
+
+    #   if 'canError/immediateDisable' in alertType:
+    #     print("=================Alert============================")
+    #     print(alertType,":",alertText1,alertText2)
+    #     break
 
     # TODO: let UI handle this
     # Exit main loop when uninstall is needed

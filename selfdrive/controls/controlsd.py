@@ -131,12 +131,12 @@ class Controls:
       self.LaC = LatControlLQR(self.CP)
 
     self.initialized = False
-    self.state = State.disabled
+    self.state =  State.disabled #State.preEnabled
     self.enabled = False
     self.active = False
     self.can_rcv_error = False
     self.soft_disable_timer = 0
-    self.v_cruise_kph = 255
+    self.v_cruise_kph = 64#40 #255
     self.v_cruise_kph_last = 0
     self.mismatch_counter = 0
     self.can_error_counter = 0
@@ -322,12 +322,18 @@ class Controls:
       and self.CP.openpilotLongitudinalControl and CS.vEgo < 0.3:
       self.events.add(EventName.noTarget)
 
+    # if (self.events.events):
+    #   print("=================Event============================")
+    #   print(self.events.events)
+
+
+
   def data_sample(self):
     """Receive data from sockets and update carState"""
 
     # Update carState from CAN
     can_strs = messaging.drain_sock_raw(self.can_sock, wait_for_one=True)
-    CS = self.CI.update(self.CC, can_strs)
+    CS = self.CI.update(self.CC, can_strs) #car/honda/interface.py
 
     self.sm.update(0)
 
@@ -369,11 +375,19 @@ class Controls:
     elif self.CP.pcmCruise and CS.cruiseState.enabled:
       self.v_cruise_kph = CS.cruiseState.speed * CV.MS_TO_KPH
 
+    # print("v_cruise_kph = {} ~~~~~~~~~~~~~~~~~\n".format(self.v_cruise_kph))
+
     # decrease the soft disable timer at every step, as it's reset on
     # entrance in SOFT_DISABLING state
     self.soft_disable_timer = max(0, self.soft_disable_timer - 1)
 
     self.current_alert_types = [ET.PERMANENT]
+
+    # #added by xugui #removed to bridge.by by simulating button Enable event
+    # if self.state == State.preEnabled:
+    #   self.events.clear()
+    #   self.events.add(EventName.buttonEnable)
+    #   self.state = State.disabled
 
     # ENABLED, PRE ENABLING, SOFT DISABLING
     if self.state != State.disabled:
@@ -381,10 +395,12 @@ class Controls:
       if self.events.any(ET.USER_DISABLE):
         self.state = State.disabled
         self.current_alert_types.append(ET.USER_DISABLE)
+        print('~~~~~~~~~~~1~~~~~~~~~~\n\n\n')
 
       elif self.events.any(ET.IMMEDIATE_DISABLE):
         self.state = State.disabled
         self.current_alert_types.append(ET.IMMEDIATE_DISABLE)
+        print('~~~~~~~~~~~2~~~self.events={}~self.state={}~~~~~\n\n\n'.format(self.events.events,self.state))
 
       else:
         # ENABLED
@@ -393,37 +409,46 @@ class Controls:
             self.state = State.softDisabling
             self.soft_disable_timer = 300   # 3s
             self.current_alert_types.append(ET.SOFT_DISABLE)
+            print('~~~~~~~~~~~3~~~~~~~~~\n\n\n')
 
         # SOFT DISABLING
         elif self.state == State.softDisabling:
           if not self.events.any(ET.SOFT_DISABLE):
             # no more soft disabling condition, so go back to ENABLED
             self.state = State.enabled
+            print('~~~~~~~~~~~4~~~~~~~~~~\n\n\n')
 
           elif self.events.any(ET.SOFT_DISABLE) and self.soft_disable_timer > 0:
             self.current_alert_types.append(ET.SOFT_DISABLE)
+            print('~~~~~~~~~~~5~~~~~~~~~~\n\n\n')
 
           elif self.soft_disable_timer <= 0:
             self.state = State.disabled
+            print('~~~~~~~~~~~6~~~~~~~~~~\n\n\n')
 
         # PRE ENABLING
         elif self.state == State.preEnabled:
           if not self.events.any(ET.PRE_ENABLE):
             self.state = State.enabled
+            print('~~~~~~~~~~~7~~~~~~~~~\n\n\n')
           else:
             self.current_alert_types.append(ET.PRE_ENABLE)
+            print('~~~~~~~~~~~8~~~~~~~~~~\n\n\n')
 
     # DISABLED
     elif self.state == State.disabled:
       if self.events.any(ET.ENABLE):
         if self.events.any(ET.NO_ENTRY):
           self.current_alert_types.append(ET.NO_ENTRY)
+          print('~~~~~~~~~~~9~~~~~~~~~~\n\n\n')
 
         else:
           if self.events.any(ET.PRE_ENABLE):
             self.state = State.preEnabled
+            print('~~~~~~~~~~~10~~~~~~~~~~\n\n\n')
           else:
             self.state = State.enabled
+            print('~~~~~~~~~~~11~~~self.events={}~self.state={}~~~~~\n\n\n'.format(self.events.events,self.state))
           self.current_alert_types.append(ET.ENABLE)
           self.v_cruise_kph = initialize_v_cruise(CS.vEgo, CS.buttonEvents, self.v_cruise_kph_last)
 
@@ -434,6 +459,8 @@ class Controls:
 
     # Check if openpilot is engaged
     self.enabled = self.active or self.state == State.preEnabled
+
+    # print("self.enabled = {},self.active={},self.state={},self.events={} ~~~~~~~~{}~~~~~~~\n".format(self.enabled,self.active,self.state,self.events.events,self.current_alert_types))
 
   def state_control(self, CS):
     """Given the state, this function returns an actuators packet"""
@@ -609,6 +636,11 @@ class Controls:
     controlsState.startMonoTime = int(start_time * 1e9)
     controlsState.forceDecel = bool(force_decel)
     controlsState.canErrorCounter = self.can_error_counter
+
+    # if controlsState.alertSize:
+    #   print("=================Alert============================")
+    #   print(controlsState.alertText1,controlsState.alertText2)
+    #   print(controlsState)
 
     if self.joystick_mode:
       controlsState.lateralControlState.debugState = lac_log

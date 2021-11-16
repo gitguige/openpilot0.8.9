@@ -69,6 +69,10 @@ class AlertManager:
     if len(self.activealerts):
       current_alert = self.activealerts[0]
 
+      # #added by xugui
+      # print("=================Alert============================")
+      # print(current_alert)
+
       self.alert_type = current_alert.alert_type
 
       if current_alert.start_time + current_alert.duration_sound > cur_time:

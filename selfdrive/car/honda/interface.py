@@ -341,6 +341,7 @@ class CarInterface(CarInterfaceBase):
         but = self.CS.prev_cruise_buttons
       if but == CruiseButtons.RES_ACCEL:
         be.type = ButtonType.accelCruise
+        print("cruise up lalalalalla~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n")
       elif but == CruiseButtons.DECEL_SET:
         be.type = ButtonType.decelCruise
       elif but == CruiseButtons.CANCEL:

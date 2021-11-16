@@ -80,6 +80,8 @@ def _get_interface_names():
 interface_names = _get_interface_names()
 interfaces = load_interfaces(interface_names)
 
+# print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~the interface_names is {}~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n".format(interface_names))
+
 
 def only_toyota_left(candidate_cars):
   return all(("TOYOTA" in c or "LEXUS" in c) for c in candidate_cars) and len(candidate_cars) > 0

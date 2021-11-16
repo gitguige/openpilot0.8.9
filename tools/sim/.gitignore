@@ -1,4 +1,7 @@
 CARLA_*.tar.gz
 carla
 carla_tmp
+results*
+bridge.bk
+bridge.ref*
 
