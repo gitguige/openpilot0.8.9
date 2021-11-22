@@ -29,6 +29,7 @@ parser.add_argument('--spawn_point', dest='num_selected_spawn_point',
         type=int, default=16)
 
 parser.add_argument('--cruise_lead', type=int, default=80) #(1 + 80%)V0 = 1.8V0
+parser.add_argument('--init_dist', type=int, default=100) #meters; initial relative distance between vehicle and vehicle2
 
 # parser.add_argument('--faultinfo', type=str, default='')
 # parser.add_argument('--scenarioNum', type=int, default=1)
@@ -42,12 +43,11 @@ REPEAT_COUNTER = 5
 PRINT_DECIMATION = 100
 STEER_RATIO = 15.
 
-# CRUISE_SPEED_LEAD = 1.8 #1.2*v0, v0 is the current speed limit ~ 17 mph
-INIT_DREL = 100 #meters; initial relative distance between vehicle and vehicle2
 vEgo = 40 #mph #set in selfdrive/controlsd
+FI_Enable = False#True #False: run the code in fault free mode; True: add fault inejction Engine 
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
-sm = messaging.SubMaster(['carControl','controlsState','radarState'])
+sm = messaging.SubMaster(['carControl','controlsState','radarState','modelV2'])
 
 class VehicleState:
   def __init__(self):
@@ -162,6 +162,11 @@ def collision_callback(col_event):
   collision_hist.append(col_event)
   # print(col_event)
 
+laneInvasion_hist = []
+def laneInvasion_callback(LaneInvasionEvent):
+  laneInvasion_hist.append(LaneInvasionEvent)
+
+
 
 def fake_driver_monitoring(exit_event: threading.Event):
   pm = messaging.PubMaster(['driverState','driverMonitoringState'])
@@ -227,7 +232,7 @@ def bridge(q):
 
   #=====add second vehicle=====
   spawn_point2 = spawn_point
-  spawn_point2.location.y   += INIT_DREL#100#20
+  spawn_point2.location.y   += args.init_dist#100#20
   vehicle2 = world.spawn_actor(vehicle_bp, spawn_point2)
   # vehicle2.set_autopilot(True)
 
@@ -291,6 +296,11 @@ def bridge(q):
   colsensor = world.spawn_actor(colsensor_bp, transform, attach_to=vehicle)
   colsensor.listen(lambda colevent: collision_callback(colevent))
 
+  #lane invasion
+  laneInvasion_bp = blueprint_library.find("sensor.other.lane_invasion")
+  laneInvasion = world.spawn_actor(laneInvasion_bp, transform, attach_to=vehicle)
+  laneInvasion.listen(lambda LaneInvasionEvent: laneInvasion_callback(LaneInvasionEvent))
+
 
 
   # launch fake car threads
@@ -334,11 +344,12 @@ def bridge(q):
   # q.put("cruise_up")
   is_autopilot_engaged =False #vehicle2
 
-  fp_res = open('results/data_ADS1_{}mph_{}m_{}V0.csv'.format(vEgo,INIT_DREL,args.cruise_lead),'w')
-  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection\n")
+  fp_res = open('results/data_ADS1_{}mph_{}m_{}V0.csv'.format(vEgo,args.init_dist,args.cruise_lead),'w')
+  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection,alert,hazard,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath\n")
   speed = 0
   throttle_out_hist = 0
   FI_time_budget = 250 #250*10ms =2.5s
+  Num_laneInvasion = 0
 
   faulttime = -1
   alerttime = -1
@@ -347,8 +358,7 @@ def bridge(q):
 
   hazMsg = ""
   hazard = False
-  altMsg = ""
-  alert = False
+
   alertType_list =[]
   alertText1_list = []
   alertText2_list = []
@@ -356,6 +366,9 @@ def bridge(q):
   FI_flage = 0
   frameIdx = 0
   while frameIdx<6000:
+
+    altMsg = ""
+    alert = False
 
     if FI_flage<2: #0/1
       FI_flage = 0
@@ -366,6 +379,8 @@ def bridge(q):
     if rk.frame == 750:
       q.put("cruise_up")
 
+    # if frameIdx == 1000:
+    #   tm.vehicle_percentage_speed_difference(vehicle2,-100)
 
     # if frameIdx >2000:
     #   q.put("quit")
@@ -427,8 +442,10 @@ def bridge(q):
     yRel = 2.5
     vRel = 0
     vLead = 0
+    yPos = 0
+    ylaneLines = []
 
-      # print('message',old_throttle, old_steer, old_brake)
+    # print('message',old_throttle, old_steer, old_brake)
 
     if is_openpilot_engaged:
       sm.update(0)
@@ -445,11 +462,18 @@ def bridge(q):
       old_steer = steer_out
 
       dRel = sm['radarState'].leadOne.dRel
-      yRel = sm['radarState'].leadOne.yRel
+      yRel = sm['radarState'].leadOne.yRel #y means lateral direction
       vRel = sm['radarState'].leadOne.vRel
       vLead = sm['radarState'].leadOne.vLead
       # if not sm['radarState'].leadOne.status:
       #   dRel = 100
+
+      md = sm['modelV2']
+      if len(md.position.y)>0:
+        yPos = round(md.position.y[0],2) # position 
+        ylaneLines = [round(md.laneLines[0].y[0],2),round(md.laneLines[1].y[0],2),round(md.laneLines[2].y[0],2),round(md.laneLines[3].y[0],2)]
+        # print(ylaneLines[2] - yPos)
+
 
     else:
       if throttle_out==0 and old_throttle>0:
@@ -491,45 +515,39 @@ def bridge(q):
     
     RSpeed = -vRel #v_Ego -V_Lead
 
-    # #FI random example ===============================================
-    # if frameIdx>3000 and  frameIdx<10000:#FI_flage:
-    #   if FI_flage ==0:
-    #     print("===============start fault injection!==========")
-    #     FI_flage =1
-    #   throttle_out +=0.5
-    #   if throttle_out >1:
-    #     throttle_out = 0.99
-    #   brake_out = 0
-    # elif FI_flage:
-    #   FI_flage = 0
-    # #=================================================================
+    if FI_Enable == True:
+      # #FI CAWT
+      # if FI_flage ==0:
+      #   if speed !=0:
+      #     if vRel<0 and dRel/speed <2:#FI_flage:
+      #       print("===============start fault injection!==========")
+      #       FI_flage =1    
+      # 
+      
+      #throttle:HOOK#
+      if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
+        throttle_out=0.6
+        brake_out=0
+        FI_flage=1
+        
+      if FI_flage == 1:
+        if faulttime == -1:
+          faulttime = frameIdx
+        fault_duration += 1
+        throttle_out =0.6
+        brake_out = 0      
+      #   FI_time_budget -= 1
+      #   if FI_time_budget <=0:
+      #     FI_flage = 2 #quit
+      #     print("===============Stop fault injection as the 2.5 s time budget used up!===========")
+      # #==============
 
-    #throttle:HOOK#
-
-    # #FI CAWT
-    # if FI_flage ==0:
-    #   if speed !=0:
-    #     if vRel<0 and dRel/speed <2:#FI_flage:
-    #       print("===============start fault injection!==========")
-    #       FI_flage =1
-       
-
-    if FI_flage == 1:
-      if faulttime == -1:
-        faulttime = frameIdx
-      fault_duration += 1
-      # throttle_out =0.6
-      # brake_out = 0      
-    #   FI_time_budget -= 1
-    #   if FI_time_budget <=0:
-    #     FI_flage = 2 #quit
-    #     print("===============Stop fault injection as the 2.5 s time budget used up!===========")
-    # #==============
-
-    # if FI_flage == 2:
-    #   throttle_out = 0
-    #   brake_out = 1
-    #   steer_carla = 0
+      # if FI_flage == 2:
+      if faulttime >= 0 and frameIdx >250 + faulttime:
+        FI_flage = 2
+        throttle_out = 0
+        brake_out = 1
+        steer_carla = 0
     
     vc.throttle = throttle_out/0.6
     vc.steer = steer_carla
@@ -580,22 +598,38 @@ def bridge(q):
       hazardtime =frameIdx
       dRel = -0.1
 
+    #if collision 
+    laneInvasion_Flag = False
+    if len(laneInvasion_hist)>Num_laneInvasion:
+      # hazard = True
+      laneInvasion_Flag =True
+      Num_laneInvasion = len(laneInvasion_hist)
+      print(Num_laneInvasion,laneInvasion_hist[-1],laneInvasion_hist[-1].crossed_lane_markings)
+      # del(laneInvasion_hist[0])
+
+
     #lable hazard
     if dRel <0.5 and dRel != 0:
       if not hazard:
         hazard = True
         hazardtime =frameIdx
-        hazMsg ="unsafe distance"
+        hazMsg ="H1"
+
+    
 
     #result print out
     # if rk.frame%PRINT_DECIMATION == 0:
     if rk.frame%PRINT_DECIMATION == 0 or dRel<1 and dRel != 0:
       print("Frame ID:",frameIdx,"frame: ", rk.frame,"engaged:", is_openpilot_engaged, "; throttle: ", round(vc.throttle, 3), "acc:" ,round(acceleration,2),round(throttle_out_hist/acceleration,2),"; steer(c/deg): ", round(vc.steer, 3), round(steer_out, 3), "; brake: ", round(vc.brake, 3),\
-            "speed:",round(speed,2),'vLead:',round(vLead,2),"vRel",round(-vRel,2),"drel:",round(dRel,2),round(yRel,2),"FI:",FI_flage==1,"Hazard:",hazard)
+            "speed:",round(speed,2),'vLead:',round(vLead,2),"vRel",round(-vRel,2),"drel:",round(dRel,2),round(yRel,2),'Lanelines',yPos,ylaneLines,"FI:",FI_flage==1,"Hazard:",hazard)
 
     #result record in files
-    if is_openpilot_engaged and (frameIdx%20==0 or (dRel<1 and dRel != 0)): #record every 20*10=0.2s
-      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,dRel,-vRel,yRel,FI_flage==1))
+    pathleft = pathright = 0
+    if len(ylaneLines)>2:
+      pathleft = yPos- ylaneLines[1]
+      pathright = ylaneLines[2]-yPos 
+    if is_openpilot_engaged :#and (frameIdx%20==0 or (dRel<1 and dRel != 0)): #record every 20*10=0.2s
+      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,dRel,-vRel,yRel,FI_flage==1,alert,hazard,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright))
 
     rk.keep_time()
     # print(rk.frame)
@@ -604,12 +638,13 @@ def bridge(q):
 
 
     #brake with hazard
-    if hazard:
+    if hazard or FI_flage ==2 and speed<0.01:
       break
 
-  #store alert,hazard message to a file
+  #store alert,hazard message to a file, which will be stored in a summary file
+  Alert_flag = len(alertType_list)>0 and 'startupMaster/permanent' not in alertType_list and 'buttonEnable/enable' not in alertType_list
   fp_temp = open("temp.txt",'w')
-  fp_temp.write("{},{},{},{},{},{},{},{}".format("||".join(alertType_list),hazMsg,faulttime,alerttime,hazardtime,len(alertType_list)>0,hazard,fault_duration  ))
+  fp_temp.write("{},{},{},{},{},{},{},{},{}".format("||".join(alertType_list),hazMsg,faulttime,alerttime,hazardtime, Alert_flag,hazard,fault_duration,Num_laneInvasion  ))
   fp_temp.close()
 
   # Clean up resources in the opposite order they were created.

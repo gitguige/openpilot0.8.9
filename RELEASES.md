@@ -1,3 +1,15 @@
+Changes by Xugui
+========================
+ * Add collision detector
+ * Add LaneInvasion detector
+    * detect the events when there is any overlap between the Ego vehicle and the lane marker
+ * Add second vehicle controled by autopilot
+ * Add fault injector
+    * start and stop the simulation automatically without manually control
+  
+
+
+
 Version 0.8.9 (2021-XX-XX)
 ========================
 

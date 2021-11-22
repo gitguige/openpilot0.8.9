@@ -62,6 +62,8 @@ class LateralPlanner():
     self.t_idxs = np.arange(TRAJECTORY_SIZE)
     self.y_pts = np.zeros(TRAJECTORY_SIZE)
 
+    self.count = 0
+
   def setup_mpc(self):
     self.libmpc = libmpc_py.libmpc
     self.libmpc.init()
@@ -84,6 +86,9 @@ class LateralPlanner():
     measured_curvature = sm['controlsState'].curvature
 
     md = sm['modelV2']
+    # print("=================added by xugui================")
+    # print(md)
+    # print("=================================")
     self.LP.parse_model(sm['modelV2'])
     if len(md.position.x) == TRAJECTORY_SIZE and len(md.orientation.x) == TRAJECTORY_SIZE:
       self.path_xyz = np.column_stack([md.position.x, md.position.y, md.position.z])
@@ -91,6 +96,16 @@ class LateralPlanner():
       self.plan_yaw = list(md.orientation.z)
     if len(md.orientation.xStd) == TRAJECTORY_SIZE:
       self.path_xyz_stds = np.column_stack([md.position.xStd, md.position.yStd, md.position.zStd])
+
+    if self.count  %50 == 0:
+      print("================modelV2=position================")
+      print("modelV2.position:",self.path_xyz[0],\
+        '\n laneLines:',\
+            [round(md.laneLines[0].x[0],2), round(md.laneLines[0].y[0],2), round(md.laneLines[0].z[0],2)],\
+            [round(md.laneLines[1].x[0],2), round(md.laneLines[1].y[0],2), round(md.laneLines[1].z[0],2)],\
+            [round(md.laneLines[2].x[0],2), round(md.laneLines[2].y[0],2), round(md.laneLines[2].z[0],2)],\
+            [round(md.laneLines[3].x[0],2), round(md.laneLines[3].y[0],2), round(md.laneLines[3].z[0],2)])
+    self.count  += 1
 
     # Lane change logic
     one_blinker = sm['carState'].leftBlinker != sm['carState'].rightBlinker

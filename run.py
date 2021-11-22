@@ -74,7 +74,7 @@ def inject_fault(fileName):
 
 
         summFile = open('../output_files/'+title+'/summary.csv','w')
-        summLine = 'Scenario#,Fault#,Fault-line,vLead,Alerts,Hazards,T1,T2,T3,Alert_flag,Hazard_flag,Fault_duration\n'
+        summLine = 'Scenario#,Fault#,Fault-line,vLead,InitDist,Alerts,Hazards,T1,T2,T3,Alert_flag,Hazard_flag,Fault_duration,Num_laneInvasion\n'
         summFile.write(summLine)
         summFile.close()
 
@@ -95,23 +95,24 @@ def inject_fault(fileName):
             if os.path.isdir(output_dir) != True:
               os.makedirs(output_dir)
 
-              insert_fault_code(fileLoc, faultLoc, lineSeg)
+              # insert_fault_code(fileLoc, faultLoc, lineSeg)
 
-              for vLead in [20,50,80]:
-                os.system('./run_bridge.sh {}'.format(vLead)) # run the openpilot simulator outside docker
+              for InitDist in [50,75,100]:
+                for vLead in [20,100]:
+                  os.system('./run_bridge.sh {} {}'.format(vLead,InitDist)) # run the openpilot simulator outside docker
 
-                summFile = open('../output_files/'+title+'/summary.csv','a')
-                faultLine = '||'.join(lineSeg)
-                faultLine = faultLine.replace('\n','')
-                summLine = '%d,%d,"%s",%d,' %(int(scenario_num),int(faultNum),faultLine,vLead)
+                  summFile = open('../output_files/'+title+'/summary.csv','a')
+                  faultLine = '||'.join(lineSeg)
+                  faultLine = faultLine.replace('\n','')
+                  summLine = '%d,%d,"%s",%d,%d,' %(int(scenario_num),int(faultNum),faultLine,vLead,InitDist)
 
-                fp_temp = open("tools/sim/temp.txt",'r')
-                tempLine = fp_temp.readline()
-                tempLine = tempLine.replace('\n','')
-            
-                summFile.write(summLine+tempLine+'\n')
-                summFile.close()
-                fp_temp.close()
+                  fp_temp = open("tools/sim/temp.txt",'r')
+                  tempLine = fp_temp.readline()
+                  tempLine = tempLine.replace('\n','')
+              
+                  summFile.write(summLine+tempLine+'\n')
+                  summFile.close()
+                  fp_temp.close()
 
               # '''Copy all output files in a common directory'''
               # cmd = 'cp -a ' + outfile_path+'/.' + ' ' + output_dir
@@ -128,8 +129,6 @@ def inject_fault(fileName):
         os.system(cmd)
         cmd = 'rm ' + bkupFile
         os.system(cmd)
-        # handleH2LdRel('stop','')
-        # handleReTime('stop','')
         print ('Original file restored')
     cmd = 'cp '+in_file + ' ' +'../output_files/'+title
     os.system(cmd)
