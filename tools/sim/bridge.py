@@ -29,6 +29,7 @@ parser.add_argument('--spawn_point', dest='num_selected_spawn_point',
         type=int, default=16)
 
 parser.add_argument('--cruise_lead', type=int, default=80) #(1 + 80%)V0 = 1.8V0
+parser.add_argument('--cruise_lead2', type=int, default=80) #(1 + 80%)V0 = 1.8V0 #change speed in the middle
 parser.add_argument('--init_dist', type=int, default=100) #meters; initial relative distance between vehicle and vehicle2
 
 # parser.add_argument('--faultinfo', type=str, default='')
@@ -43,8 +44,8 @@ REPEAT_COUNTER = 5
 PRINT_DECIMATION = 100
 STEER_RATIO = 15.
 
-vEgo = 40 #mph #set in selfdrive/controlsd
-FI_Enable = False#True #False: run the code in fault free mode; True: add fault inejction Engine 
+vEgo = 60 #mph #set in selfdrive/controlsd
+FI_Enable = True #False: run the code in fault free mode; True: add fault inejction Engine 
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
 sm = messaging.SubMaster(['carControl','controlsState','radarState','modelV2'])
@@ -346,12 +347,13 @@ def bridge(q):
   # q.put("cruise_up")
   is_autopilot_engaged =False #vehicle2
 
-  fp_res = open('results/data_ADS1_{}mph_{}m_{}V0.csv'.format(vEgo,args.init_dist,args.cruise_lead),'w')
+  fp_res = open('results/data_ADS1_{}mph_{}m_{}V0_{}V0.csv'.format(vEgo,args.init_dist,args.cruise_lead,args.cruise_lead2),'w')
   fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection,alert,hazard,hazardType,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath,leftEdge,rightEdge\n")
   speed = 0
   throttle_out_hist = 0
   FI_time_budget = 250 #250*10ms =2.5s
   Num_laneInvasion = 0
+  t_laneInvasion = 0
 
   faulttime = -1
   alerttime = -1
@@ -368,7 +370,7 @@ def bridge(q):
 
   FI_flage = 0
   frameIdx = 0
-  while frameIdx<5500:
+  while frameIdx<5000:
 
     altMsg = ""
     alert = False
@@ -382,8 +384,9 @@ def bridge(q):
     if rk.frame == 800:
       q.put("cruise_up")
 
-    # if frameIdx == 1000:
-    #   tm.vehicle_percentage_speed_difference(vehicle2,-100)
+    if args.cruise_lead != args.cruise_lead2 and frameIdx == 1000: #change the speed of vehicle2
+      print("===========change Lead vehicle cruise speed from {}mph to {}mph".format(args.cruise_lead,args.cruise_lead2))
+      tm.vehicle_percentage_speed_difference(vehicle2,-args.cruise_lead2)
 
     # if frameIdx >2000:
     #   q.put("quit")
@@ -611,6 +614,7 @@ def bridge(q):
       # hazard = True
       laneInvasion_Flag =True
       Num_laneInvasion = len(laneInvasion_hist)
+      t_laneInvasion = frameIdx
       print(Num_laneInvasion,laneInvasion_hist[-1],laneInvasion_hist[-1].crossed_lane_markings)
       # del(laneInvasion_hist[0])
 

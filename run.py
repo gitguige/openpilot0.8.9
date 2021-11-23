@@ -74,7 +74,7 @@ def inject_fault(fileName):
 
 
         summFile = open('../output_files/'+title+'/summary.csv','w')
-        summLine = 'Scenario#,Fault#,Fault-line,vLead,InitDist,Alerts,Hazards,T1,T2,T3,Alert_flag,Hazard_flag,Fault_duration,Num_laneInvasion\n'
+        summLine = 'Scenario#,Fault#,Fault-line,vLead,InitDist,vLead2,Alerts,Hazards,T1,T2,T3,Alert_flag,Hazard_flag,Fault_duration,Num_laneInvasion\n'
         summFile.write(summLine)
         summFile.close()
 
@@ -99,20 +99,21 @@ def inject_fault(fileName):
 
               for InitDist in [50,70,100]:
                 for vLead in [100,200]:#20,100]:
-                  os.system('./run_bridge.sh {} {}'.format(vLead,InitDist)) # run the openpilot simulator outside docker
+                  for vLead2 in [100,200]:
+                    os.system('./run_bridge.sh {} {} {}'.format(vLead,InitDist,vLead2)) # run the openpilot simulator outside docker
 
-                  summFile = open('../output_files/'+title+'/summary.csv','a')
-                  faultLine = '||'.join(lineSeg)
-                  faultLine = faultLine.replace('\n','')
-                  summLine = '%d,%d,"%s",%d,%d,' %(int(scenario_num),int(faultNum),faultLine,vLead,InitDist)
+                    summFile = open('../output_files/'+title+'/summary.csv','a')
+                    faultLine = '||'.join(lineSeg)
+                    faultLine = faultLine.replace('\n','')
+                    summLine = '%d,%d,"%s",%d,%d,%d,' %(int(scenario_num),int(faultNum),faultLine,vLead,InitDist,vLead2)
 
-                  fp_temp = open("tools/sim/temp.txt",'r')
-                  tempLine = fp_temp.readline()
-                  tempLine = tempLine.replace('\n','')
-              
-                  summFile.write(summLine+tempLine+'\n')
-                  summFile.close()
-                  fp_temp.close()
+                    fp_temp = open("tools/sim/temp.txt",'r')
+                    tempLine = fp_temp.readline()
+                    tempLine = tempLine.replace('\n','')
+                
+                    summFile.write(summLine+tempLine+'\n')
+                    summFile.close()
+                    fp_temp.close()
 
               # '''Copy all output files in a common directory'''
               # cmd = 'cp -a ' + outfile_path+'/.' + ' ' + output_dir
