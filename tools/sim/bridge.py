@@ -312,6 +312,8 @@ def bridge(q):
   for t in threads:
     t.start()
 
+  time.sleep(1)
+
   # can loop
   rk = Ratekeeper(100, print_delay_threshold=0.05) #rate =100, T=1/100s=10ms
 
@@ -365,7 +367,7 @@ def bridge(q):
 
   FI_flage = 0
   frameIdx = 0
-  while frameIdx<6000:
+  while frameIdx<5500:
 
     altMsg = ""
     alert = False
@@ -376,7 +378,7 @@ def bridge(q):
       frameIdx += 1
 
     #simulate button Enable event
-    if rk.frame == 750:
+    if rk.frame == 800:
       q.put("cruise_up")
 
     # if frameIdx == 1000:
@@ -598,7 +600,7 @@ def bridge(q):
       hazardtime =frameIdx
       dRel = -0.1
 
-    #if collision 
+    #if laneInvasion 
     laneInvasion_Flag = False
     if len(laneInvasion_hist)>Num_laneInvasion:
       # hazard = True
@@ -688,8 +690,20 @@ if __name__ == "__main__":
   Params().put("CalibrationParams", msg.to_bytes())
 
   q: Any = Queue()
+
   # p = Process(target=bridge_keep_alive, args=(q,), daemon=True)
   # p.start()
+
+  # if 0:#args.joystick:
+  #   # start input poll for joystick
+  #   from lib.manual_ctrl import wheel_poll_thread
+  #   wheel_poll_thread(q)
+  #   p.join()
+  # else:
+  #   # start input poll for keyboard
+  #   from lib.keyboard_ctrl import keyboard_poll_thread
+  #   keyboard_poll_thread(q)
+
 
   # # start input poll for keyboard
   # from lib.keyboard_ctrl import keyboard_poll_thread
@@ -701,12 +715,4 @@ if __name__ == "__main__":
   # p_keyboard.join()
 
 
-  # if 0:#args.joystick:
-  #   # start input poll for joystick
-  #   from lib.manual_ctrl import wheel_poll_thread
-  #   wheel_poll_thread(q)
-  #   p.join()
-  # else:
-  #   # start input poll for keyboard
-  #   from lib.keyboard_ctrl import keyboard_poll_thread
-  #   keyboard_poll_thread(q)
+
