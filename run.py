@@ -97,7 +97,7 @@ def inject_fault(fileName):
 
               # insert_fault_code(fileLoc, faultLoc, lineSeg)
 
-              for InitDist in [50]:#,75,100]:
+              for InitDist in [50,70,100]:
                 for vLead in [100,200]:#20,100]:
                   os.system('./run_bridge.sh {} {}'.format(vLead,InitDist)) # run the openpilot simulator outside docker
 

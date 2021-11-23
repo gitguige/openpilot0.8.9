@@ -347,7 +347,7 @@ def bridge(q):
   is_autopilot_engaged =False #vehicle2
 
   fp_res = open('results/data_ADS1_{}mph_{}m_{}V0.csv'.format(vEgo,args.init_dist,args.cruise_lead),'w')
-  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection,alert,hazard,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath\n")
+  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection,alert,hazard,hazardType,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath,leftEdge,rightEdge\n")
   speed = 0
   throttle_out_hist = 0
   FI_time_budget = 250 #250*10ms =2.5s
@@ -360,6 +360,7 @@ def bridge(q):
 
   hazMsg = ""
   hazard = False
+  hazType =0x0
 
   alertType_list =[]
   alertText1_list = []
@@ -446,6 +447,8 @@ def bridge(q):
     vLead = 0
     yPos = 0
     ylaneLines = []
+    yroadEdges = []
+
 
     # print('message',old_throttle, old_steer, old_brake)
 
@@ -474,6 +477,7 @@ def bridge(q):
       if len(md.position.y)>0:
         yPos = round(md.position.y[0],2) # position 
         ylaneLines = [round(md.laneLines[0].y[0],2),round(md.laneLines[1].y[0],2),round(md.laneLines[2].y[0],2),round(md.laneLines[3].y[0],2)]
+        yroadEdges = [round(md.roadEdges[0].y[0],2), round(md.roadEdges[1].y[0],2)] #left and right roadedges
         # print(ylaneLines[2] - yPos)
 
 
@@ -590,14 +594,15 @@ def bridge(q):
       print("=================Alert============================")
       print(alertType,":",alertText1,alertText2)
 
-    #if collision 
+    #Accident: collision 
     if len(collision_hist):
-      hazard = True
       print(collision_hist[0],collision_hist[0].other_actor)
       # print(vehicle2)
       if collision_hist[0].other_actor.id == vehicle2.id: #collide with vehicle2:
-        hazMsg ="collide with lead vihecle"
-      hazardtime =frameIdx
+        hazMsg +="||collide with lead vihecle||"
+      else:
+        hazMsg +="||collide with curb||"
+
       dRel = -0.1
 
     #if laneInvasion 
@@ -609,13 +614,36 @@ def bridge(q):
       print(Num_laneInvasion,laneInvasion_hist[-1],laneInvasion_hist[-1].crossed_lane_markings)
       # del(laneInvasion_hist[0])
 
+    pathleft = pathright = 0
+    roadEdgeLeft = roadEdgeRight = 0
+    if len(ylaneLines)>2:
+      pathleft = yPos- ylaneLines[1]
+      pathright = ylaneLines[2]-yPos 
+      roadEdgeLeft = yroadEdges[0]
+      roadEdgeRight = yroadEdges[1]
 
     #lable hazard
-    if dRel <0.5 and dRel != 0:
-      if not hazard:
+    if dRel <0.5 and dRel != 0 and 'curb' not in hazMsg: # unsafe distance # collide with curb is not H1
+      if hazType&0x01 == 0:
         hazard = True
         hazardtime =frameIdx
-        hazMsg ="H1"
+
+        hazMsg +="H1"
+        hazType |= 0x01 #0b 001
+
+    if speed<0.02 and dRel >90: #decrease the speed to full stop without a lead vehicle
+      if hazType&0x02 == 0:
+        hazard = True
+        hazardtime =frameIdx
+        hazMsg +="H2"
+        hazType |= 0x02 #0b 100
+
+    if Num_laneInvasion > 0 and (roadEdgeRight <3.7 and (pathright <1.15) or roadEdgeRight>7.4): #lane width = 3.7m vehicle width =2.3m or(ylaneLines[3] -ylaneLines[2] <1.15)
+      if hazType&0x04 == 0:
+        hazard = True
+        hazardtime =frameIdx
+        hazMsg +="H3"
+        hazType |= 0x04 #0b 100
 
     
 
@@ -623,25 +651,19 @@ def bridge(q):
     # if rk.frame%PRINT_DECIMATION == 0:
     if rk.frame%PRINT_DECIMATION == 0 or dRel<1 and dRel != 0:
       print("Frame ID:",frameIdx,"frame: ", rk.frame,"engaged:", is_openpilot_engaged, "; throttle: ", round(vc.throttle, 3), "acc:" ,round(acceleration,2),round(throttle_out_hist/acceleration,2),"; steer(c/deg): ", round(vc.steer, 3), round(steer_out, 3), "; brake: ", round(vc.brake, 3),\
-            "speed:",round(speed,2),'vLead:',round(vLead,2),"vRel",round(-vRel,2),"drel:",round(dRel,2),round(yRel,2),'Lanelines',yPos,ylaneLines,"FI:",FI_flage==1,"Hazard:",hazard)
+            "speed:",round(speed,2),'vLead:',round(vLead,2),"vRel",round(-vRel,2),"drel:",round(dRel,2),round(yRel,2),'Lanelines',yPos,ylaneLines,yroadEdges,"FI:",FI_flage==1,"Hazard:",hazard)
 
     #result record in files
-    pathleft = pathright = 0
-    if len(ylaneLines)>2:
-      pathleft = yPos- ylaneLines[1]
-      pathright = ylaneLines[2]-yPos 
     if is_openpilot_engaged :#and (frameIdx%20==0 or (dRel<1 and dRel != 0)): #record every 20*10=0.2s
-      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,dRel,-vRel,yRel,FI_flage==1,alert,hazard,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright))
+      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,dRel,-vRel,yRel,FI_flage==1,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight))
 
     rk.keep_time()
-    # print(rk.frame)
-
     throttle_out_hist = vc.throttle
 
-
     #brake with hazard
-    if hazard or FI_flage ==2 and speed<0.01:
-      break
+    if hazard:# or FI_flage ==2 and speed<0.01:
+      if 'collide' in hazMsg or frameIdx - hazardtime >250: #terminate the simulation right after any collision or wait 2 seconds after any hazard 
+        break
 
   #store alert,hazard message to a file, which will be stored in a summary file
   Alert_flag = len(alertType_list)>0 and 'startupMaster/permanent' not in alertType_list and 'buttonEnable/enable' not in alertType_list
@@ -691,6 +713,7 @@ if __name__ == "__main__":
 
   q: Any = Queue()
 
+  #=================================================
   # p = Process(target=bridge_keep_alive, args=(q,), daemon=True)
   # p.start()
 
@@ -704,7 +727,7 @@ if __name__ == "__main__":
   #   from lib.keyboard_ctrl import keyboard_poll_thread
   #   keyboard_poll_thread(q)
 
-
+  ##===========================================
   # # start input poll for keyboard
   # from lib.keyboard_ctrl import keyboard_poll_thread
   # p_keyboard = Process(target=keyboard_poll_thread, args=(q,), daemon=True)

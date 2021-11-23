@@ -136,7 +136,7 @@ class Controls:
     self.active = False
     self.can_rcv_error = False
     self.soft_disable_timer = 0
-    self.v_cruise_kph = 64#40 #255
+    self.v_cruise_kph = 96#40 #255
     self.v_cruise_kph_last = 0
     self.mismatch_counter = 0
     self.can_error_counter = 0
