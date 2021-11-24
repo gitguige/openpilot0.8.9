@@ -2,9 +2,9 @@
 
 import carla
 
-from agents.navigation.behavior_agent import BehaviorAgent  # pylint: disable=import-error
-from agents.navigation.roaming_agent import RoamingAgent  # pylint: disable=import-error
-from agents.navigation.basic_agent import BasicAgent  # pylint: disable=import-error
+# from agents.navigation.behavior_agent import BehaviorAgent  # pylint: disable=import-error
+# from agents.navigation.roaming_agent import RoamingAgent  # pylint: disable=import-error
+# from agents.navigation.basic_agent import BasicAgent  # pylint: disable=import-error
 
 client = carla.Client("127.0.0.1", 2000)
 client.set_timeout(10.0)
@@ -42,3 +42,4 @@ vehicle2.set_autopilot(True)
 
 
 vehicle.destroy()
+vehicle2.destroy()

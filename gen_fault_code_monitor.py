@@ -81,7 +81,7 @@ def write_both_to_file(code,code_STPA, title, fileLoc, faultLoc):
 #################################################################################3
 
 ##########################################################################################################
-def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:']):
+def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code=''):
 		
 	trigger = 'frameIdx' #trigger_random
 	code = []
@@ -95,7 +95,7 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 	if newvalue2:
 		valuelist.append(newvalue2)
 
-	additional_code='//brake_out=0//FI_flage=1'
+	# additional_code='//brake_out=0//FI_flage=1'
 	# additional_code='//FI_flage=1'
 
 	for valueitem in valuelist:
@@ -107,7 +107,7 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 
 		#STPA FI
 		for trigger_STPA in trigger_STPA_list:
-			for round in range(10): #repeat for xx times
+			for round in range(20): #repeat for xx times
 				code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code))
 
 	write_both_to_file(code,code_STPA, title, fileLoc, faultLoc)
@@ -195,11 +195,26 @@ def gen_max_throttle(sceneNum):#S1
 	variable = 'throttle_out'
 	newvalue = '0.6'
 	# newvalue2 = '4'
+	additional_code='//brake_out=0//FI_flage=1'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
-	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
+	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list)
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
+
+def gen_max_brake(sceneNum):#S1
+	title = str(sceneNum)+'_max_brake'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'brake_out'
+	newvalue = '1'
+	# newvalue2 = '4'
+	additional_code='//throttle_out=0//FI_flage=1'
+
+	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
+	trigger_STPA_list = ['if headway_time>2.0 and RSpeed<=0 and vLead!=0:'] 
+
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
 
 def gen_min_dRel(sceneNum):#S20
 	title = str(sceneNum)+'_minimize_dRel'
@@ -227,7 +242,7 @@ with open('run_fault_inject_monitor_V2_STPA_campaign.sh', 'w') as runFile:
 	
 scenarios = {
 1 : gen_max_throttle,
-# 2 : gen_belowTarget_inc_stuck_dRel,
+2 : gen_max_brake,
 # 3 : gen_aboveTarget_nodec_sub_dRel,
 # 4 : gen_aboveTarget_nodec_stuck_dRel,
 # 5 : gen_belowTarget_add_vRel,
