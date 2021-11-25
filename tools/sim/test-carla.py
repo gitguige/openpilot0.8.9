@@ -25,10 +25,25 @@ spawn_points = world_map.get_spawn_points()
 # vehicle = world.spawn_actor(vehicle_bp, transform.location )
 
 spawn_point = spawn_points[16]
-vehicle = world.spawn_actor(vehicle_bp, spawn_point)
+spawn_point.location.y   -= 80
 
-spawn_point.location.y   += 10
-vehicle2 = world.spawn_actor(vehicle_bp, spawn_point)
+#=====add 1st vehicle=====
+spawn_point1 = carla.Transform(spawn_point.location,spawn_point.rotation)
+# spawn_point1.location.y   += 20
+vehicle = world.spawn_actor(vehicle_bp, spawn_point1)
+
+#=====add second vehicle=====
+spawn_point2 = carla.Transform(spawn_point.location,spawn_point.rotation)
+spawn_point2.location.y   += 100#20
+vehicle2 = world.spawn_actor(vehicle_bp, spawn_point2)
+# vehicle2.set_autopilot(True)
+
+#==========3rd vehilce===========
+spawn_point3 = carla.Transform(spawn_point.location,spawn_point.rotation)
+spawn_point3.location.y   -= 35
+spawn_point3.location.x   += 7
+spawn_point3.rotation.yaw += 25
+vehicle3 = world.spawn_actor(vehicle_bp, spawn_point3)
 
 
 spectator = world.get_spectator()
@@ -43,3 +58,4 @@ vehicle2.set_autopilot(True)
 
 vehicle.destroy()
 vehicle2.destroy()
+vehicle3.destroy()
