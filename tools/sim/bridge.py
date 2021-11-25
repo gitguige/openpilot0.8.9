@@ -48,6 +48,7 @@ vEgo = 60 #mph #set in selfdrive/controlsd
 FI_Enable = True #False: run the code in fault free mode; True: add fault inejction Engine 
 reInitialize_bridge = False
 Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
+Driver_react_Enable = False
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
 sm = messaging.SubMaster(['carControl','controlsState','radarState','modelV2'])
@@ -246,7 +247,7 @@ def bridge(q):
   #======end line===============
 
   max_steer_angle = vehicle.get_physics_control().wheels[0].max_steer_angle
-  print('max_steer_angle',max_steer_angle)
+  print('max_steer_angle',max_steer_angle) #70 degree
 
   # make tires less slippery
   # wheel_control = carla.WheelPhysicsControl(tire_friction=5)
@@ -356,12 +357,15 @@ def bridge(q):
   FI_time_budget = 250 #250*10ms =2.5s
   Num_laneInvasion = 0
   t_laneInvasion = 0
+  pathleft = pathright = 0
+  roadEdgeLeft = roadEdgeRight = 0
 
   faulttime = -1
   alerttime = -1
   hazardtime = -1
   fault_duration = 0
   driver_alerted_time = -1
+  H2_count = 0
 
   hazMsg = ""
   hazard = False
@@ -387,7 +391,6 @@ def bridge(q):
       q.put("cruise_up")
 
     if frameIdx == 1000:
-      # reInitialize_bridge = True
       if args.cruise_lead != args.cruise_lead2: #change the speed of vehicle2
         print("===========change Lead vehicle cruise speed from {}mph to {}mph".format(args.cruise_lead,args.cruise_lead2))
         tm.vehicle_percentage_speed_difference(vehicle2,-args.cruise_lead2)
@@ -547,24 +550,26 @@ def bridge(q):
       #*********************************************#
       #condition to activate fault injection
       #throttle:HOOK#
-      if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
-        FI_Type = 1
-        FI_flage=1
-
-      # if headway_time>2.0 and RSpeed<0 and vLead!=0:
-      #   FI_Type = 2
+      # if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
+      #   FI_Type = 1
       #   FI_flage=1
+
+      if headway_time>2.0 and RSpeed<0 and vLead!=0:
+        FI_Type = 2
+        FI_flage=1
+        
       #*********************************************#
         
       #condition to stop fault injection and start human driver engagement if FI
-      if driver_alerted_time >= 0 and frameIdx >=250 + driver_alerted_time: #average reaction time 2.5s
-        #stop fault injection 
-        FI_flage = -1 
-        #human driver reaction # full brake
-        if FI_Type == 1: # max gas
-          throttle_out = 0
-          brake_out = 1
-          steer_carla = 0      
+      if Driver_react_Enable == True:
+        if driver_alerted_time >= 0 and frameIdx >=250 + driver_alerted_time: #average reaction time 2.5s
+          #stop fault injection 
+          FI_flage = -1 
+          #human driver reaction # full brake
+          if FI_Type == 1: # max gas
+            throttle_out = 0
+            brake_out = 1
+            steer_carla = 0      
           
       #execute fault injection
       if FI_flage > 0:
@@ -604,8 +609,15 @@ def bridge(q):
     vehicle_state.cruise_button = cruise_button
     vehicle_state.is_engaged = is_openpilot_engaged
 
+    #-----------------------------------------------------
+    if frameIdx == 1000:
+      if speed <0.02 and throttle_out <0.02 and brake_out <0.02: #fail to start
+        reInitialize_bridge = True
+        print("reInitialize bridge.py...\n")
+        break
+
     #------------------------------------------------------
-    if driver_alerted_time == -1 and fault_duration>0 and (alert or throttle_out>= 0.6 or speed>1.1*vEgo  ): #max gas//exceed speed limit
+    if driver_alerted_time == -1 and fault_duration>0 and (alert or throttle_out>= 0.6 or speed>1.1*vEgo or brake_out>0.95): #max gas//max brake//exceed speed limit
       driver_alerted_time =frameIdx #driver is alerted
 
     #Accident: collision 
@@ -629,8 +641,6 @@ def bridge(q):
       print(Num_laneInvasion,laneInvasion_hist[-1],laneInvasion_hist[-1].crossed_lane_markings)
       # del(laneInvasion_hist[0])
 
-    pathleft = pathright = 0
-    roadEdgeLeft = roadEdgeRight = 0
     if len(ylaneLines)>2:
       pathleft = yPos- ylaneLines[1]
       pathright = ylaneLines[2]-yPos 
@@ -646,12 +656,16 @@ def bridge(q):
         hazMsg +="H1"
         hazType |= 0x01 #0b 001
 
-    if speed<0.02 and dRel >90: #decrease the speed to full stop without a lead vehicle
+    if speed<0.02 and (dRel >50 or dRel==vRel==0) and fault_duration>0: #decrease the speed to full stop without a lead vehicle
       if hazType&0x02 == 0:
-        hazard = True
-        hazardtime =frameIdx
-        hazMsg +="H2"
-        hazType |= 0x02 #0b 100
+        H2_count += 1
+        if H2_count>100: #last for 1 second
+          hazard = True
+          hazardtime =frameIdx
+          hazMsg +="H2"
+          hazType |= 0x02 #0b 100
+    else:
+      H2_count = 0
 
     if Num_laneInvasion > 0 and (roadEdgeRight <3.7 and (pathright <1.15) or roadEdgeRight>7.4): #lane width = 3.7m vehicle width =2.3m or(ylaneLines[3] -ylaneLines[2] <1.15)
       if hazType&0x04 == 0:

@@ -192,8 +192,8 @@ def gen_max_throttle(sceneNum):#S1
 	title = str(sceneNum)+'_max_throttle'
 	fileLoc = 'tools/sim/bridge.py'
 	faultLoc = '#throttle:HOOK#'
-	variable = 'throttle_out'
-	newvalue = '0.6'
+	variable = 'FI_Type'
+	newvalue = '1'
 	# newvalue2 = '4'
 	additional_code='//brake_out=0//FI_flage=1'
 
@@ -206,29 +206,29 @@ def gen_max_brake(sceneNum):#S1
 	title = str(sceneNum)+'_max_brake'
 	fileLoc = 'tools/sim/bridge.py'
 	faultLoc = '#throttle:HOOK#'
-	variable = 'brake_out'
-	newvalue = '1'
+	variable = 'FI_Type'
+	newvalue = '2'
 	# newvalue2 = '4'
-	additional_code='//throttle_out=0//FI_flage=1'
+	additional_code='//FI_flage=1'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if headway_time>2.0 and RSpeed<=0 and vLead!=0:'] 
 
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
 
-def gen_min_dRel(sceneNum):#S20
-	title = str(sceneNum)+'_minimize_dRel'
 
-	variable = 'radar_dRel'
-
-	fileLoc = 'selfdrive/test/plant/plant.py'
-	faultLoc = '#radar_dRel:HOOK#'
-	newvalue = '10'
+def gen_max_steer_left(sceneNum):#S1
+	title = str(sceneNum)+'_max_brake'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'FI_Type'
+	newvalue = '3'
 	# newvalue2 = '4'
+	additional_code='//FI_flage=1'
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,early_start=True)
+	trigger_STPA_list = ['if headway_time>2.0 and RSpeed<=0:'] 
 
-
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
 
 ##########################################################################################
 
@@ -243,8 +243,8 @@ with open('run_fault_inject_monitor_V2_STPA_campaign.sh', 'w') as runFile:
 scenarios = {
 1 : gen_max_throttle,
 2 : gen_max_brake,
-# 3 : gen_aboveTarget_nodec_sub_dRel,
-# 4 : gen_aboveTarget_nodec_stuck_dRel,
+3 : gen_max_steer_left,
+4 : gen_max_steer_right,
 # 5 : gen_belowTarget_add_vRel,
 # 6 : gen_belowTarget_stuck_vRel,
 # 7 : gen_aboveTarget_sub_vRel,
@@ -254,6 +254,6 @@ scenarios = {
 }
 
 random.seed(3) 
-for sceneNum in [1]:
+for sceneNum in [1,2,3,4]:
 	scenarios[sceneNum](sceneNum)
 
