@@ -95,7 +95,7 @@ def inject_fault(fileName):
             if os.path.isdir(output_dir) != True:
               os.makedirs(output_dir)
 
-              # insert_fault_code(fileLoc, faultLoc, lineSeg)
+              insert_fault_code(fileLoc, faultLoc, lineSeg)
 
               for InitDist in [50,70,100]:
                 for vLead in [100,200]:#20,100]:

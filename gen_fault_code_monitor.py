@@ -95,8 +95,8 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 	if newvalue2:
 		valuelist.append(newvalue2)
 
-	# additional_code='//brake_out=0//FI_flage=1'
-	# additional_code='//FI_flage=1'
+	# additional_code='//brake_out=0//FI_flag=1'
+	# additional_code='//FI_flag=1'
 
 	for valueitem in valuelist:
 		#random FI
@@ -192,41 +192,82 @@ def gen_max_throttle(sceneNum):#S1
 	title = str(sceneNum)+'_max_throttle'
 	fileLoc = 'tools/sim/bridge.py'
 	faultLoc = '#throttle:HOOK#'
-	variable = 'FI_Type'
+	variable = 'FI_flag'
 	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//brake_out=0//FI_flage=1'
+	additional_code='//FI_Type |= 0x01'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
 
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
 
-def gen_max_brake(sceneNum):#S1
+def gen_max_brake(sceneNum):#S2
 	title = str(sceneNum)+'_max_brake'
 	fileLoc = 'tools/sim/bridge.py'
 	faultLoc = '#throttle:HOOK#'
-	variable = 'FI_Type'
-	newvalue = '2'
+	variable = 'FI_flag'
+	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_flage=1'
+	additional_code='//FI_Type |= 0x02'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
-	trigger_STPA_list = ['if headway_time>2.0 and RSpeed<=0 and vLead!=0:'] 
+	trigger_STPA_list = ['if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):'] 
 
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
 
 
-def gen_max_steer_left(sceneNum):#S1
-	title = str(sceneNum)+'_max_brake'
+def gen_max_steer_left(sceneNum):#S3
+	title = str(sceneNum)+'_max_steer_left'
 	fileLoc = 'tools/sim/bridge.py'
 	faultLoc = '#throttle:HOOK#'
-	variable = 'FI_Type'
-	newvalue = '3'
+	variable = 'FI_flag'
+	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_flage=1'
+	additional_code='//FI_Type |= 0x04'
 
-	trigger_STPA_list = ['if headway_time>2.0 and RSpeed<=0:'] 
+	trigger_STPA_list = ['if speed>15 and laneLineleft>-1.25:'] 
+
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
+
+def gen_max_steer_right(sceneNum):#S4
+	title = str(sceneNum)+'_max_steer_right'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'FI_flag'
+	newvalue = '1'
+	# newvalue2 = '4'
+	additional_code='//FI_Type |= 0x08'
+
+	trigger_STPA_list = ['if speed>15 and laneLineleft<1.25:'] 
+
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
+
+def gen_max_throttle_steer(sceneNum):#S5
+	title = str(sceneNum)+'_max_throttle_steer'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'FI_flag'
+	newvalue = '1'
+	# newvalue2 = '4'
+	additional_code='//FI_Type |= 0x01//FI_H3_combine_enable = 1'
+
+	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
+	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
+
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
+
+def gen_max_brake_steer(sceneNum):#S6
+	title = str(sceneNum)+'_max_brake_steer'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'FI_flag'
+	newvalue = '1'
+	# newvalue2 = '4'
+	additional_code='//FI_Type |= 0x02//FI_H3_combine_enable = 1'
+
+	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
+	trigger_STPA_list = ['if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):'] 
 
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
 
@@ -245,8 +286,8 @@ scenarios = {
 2 : gen_max_brake,
 3 : gen_max_steer_left,
 4 : gen_max_steer_right,
-# 5 : gen_belowTarget_add_vRel,
-# 6 : gen_belowTarget_stuck_vRel,
+5 : gen_max_throttle_steer,
+6 : gen_max_brake_steer,
 # 7 : gen_aboveTarget_sub_vRel,
 # 8 : gen_aboveTarget_stuck_vRel,
 
@@ -254,6 +295,6 @@ scenarios = {
 }
 
 random.seed(3) 
-for sceneNum in [1,2,3,4]:
+for sceneNum in [1,2,3,4,5,6]:
 	scenarios[sceneNum](sceneNum)
 

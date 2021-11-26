@@ -1,43 +1,43 @@
 title:2_max_brake
 location//tools/sim/bridge.py//#throttle:HOOK#
-fault 1//if frameIdx>=500 and frameIdx<750.0://FI_Type=2//FI_flage=1
-fault 2//if frameIdx>=600 and frameIdx<850.0://FI_Type=2//FI_flage=1
-fault 3//if frameIdx>=700 and frameIdx<950.0://FI_Type=2//FI_flage=1
-fault 4//if frameIdx>=800 and frameIdx<1050.0://FI_Type=2//FI_flage=1
-fault 5//if frameIdx>=900 and frameIdx<1150.0://FI_Type=2//FI_flage=1
-fault 6//if frameIdx>=1000 and frameIdx<1250.0://FI_Type=2//FI_flage=1
-fault 7//if frameIdx>=1100 and frameIdx<1350.0://FI_Type=2//FI_flage=1
-fault 8//if frameIdx>=1200 and frameIdx<1450.0://FI_Type=2//FI_flage=1
-fault 9//if frameIdx>=1300 and frameIdx<1550.0://FI_Type=2//FI_flage=1
-fault 10//if frameIdx>=1400 and frameIdx<1650.0://FI_Type=2//FI_flage=1
-fault 11//if frameIdx>=1500 and frameIdx<1750.0://FI_Type=2//FI_flage=1
-fault 12//if frameIdx>=1600 and frameIdx<1850.0://FI_Type=2//FI_flage=1
-fault 13//if frameIdx>=1700 and frameIdx<1950.0://FI_Type=2//FI_flage=1
-fault 14//if frameIdx>=1800 and frameIdx<2050.0://FI_Type=2//FI_flage=1
-fault 15//if frameIdx>=1900 and frameIdx<2150.0://FI_Type=2//FI_flage=1
-fault 16//if frameIdx>=2000 and frameIdx<2250.0://FI_Type=2//FI_flage=1
-fault 17//if frameIdx>=2100 and frameIdx<2350.0://FI_Type=2//FI_flage=1
-fault 18//if frameIdx>=2200 and frameIdx<2450.0://FI_Type=2//FI_flage=1
-fault 19//if frameIdx>=2300 and frameIdx<2550.0://FI_Type=2//FI_flage=1
-fault 20//if frameIdx>=2400 and frameIdx<2650.0://FI_Type=2//FI_flage=1
-fault 21//if frameIdx>=2500 and frameIdx<2750.0://FI_Type=2//FI_flage=1
-fault 22//if frameIdx>=2600 and frameIdx<2850.0://FI_Type=2//FI_flage=1
-fault 23//if frameIdx>=2700 and frameIdx<2950.0://FI_Type=2//FI_flage=1
-fault 24//if frameIdx>=2800 and frameIdx<3050.0://FI_Type=2//FI_flage=1
-fault 25//if frameIdx>=2900 and frameIdx<3150.0://FI_Type=2//FI_flage=1
-fault 26//if frameIdx>=3000 and frameIdx<3250.0://FI_Type=2//FI_flage=1
-fault 27//if frameIdx>=3100 and frameIdx<3350.0://FI_Type=2//FI_flage=1
-fault 28//if frameIdx>=3200 and frameIdx<3450.0://FI_Type=2//FI_flage=1
-fault 29//if frameIdx>=3300 and frameIdx<3550.0://FI_Type=2//FI_flage=1
-fault 30//if frameIdx>=3400 and frameIdx<3650.0://FI_Type=2//FI_flage=1
-fault 31//if frameIdx>=3500 and frameIdx<3750.0://FI_Type=2//FI_flage=1
-fault 32//if frameIdx>=3600 and frameIdx<3850.0://FI_Type=2//FI_flage=1
-fault 33//if frameIdx>=3700 and frameIdx<3950.0://FI_Type=2//FI_flage=1
-fault 34//if frameIdx>=3800 and frameIdx<4050.0://FI_Type=2//FI_flage=1
-fault 35//if frameIdx>=3900 and frameIdx<4150.0://FI_Type=2//FI_flage=1
-fault 36//if frameIdx>=4000 and frameIdx<4250.0://FI_Type=2//FI_flage=1
-fault 37//if frameIdx>=4100 and frameIdx<4350.0://FI_Type=2//FI_flage=1
-fault 38//if frameIdx>=4200 and frameIdx<4450.0://FI_Type=2//FI_flage=1
-fault 39//if frameIdx>=4300 and frameIdx<4550.0://FI_Type=2//FI_flage=1
-fault 40//if frameIdx>=4400 and frameIdx<4650.0://FI_Type=2//FI_flage=1
+fault 1//if frameIdx>=500 and frameIdx<750.0://FI_flag=1//FI_Type |= 0x02
+fault 2//if frameIdx>=600 and frameIdx<850.0://FI_flag=1//FI_Type |= 0x02
+fault 3//if frameIdx>=700 and frameIdx<950.0://FI_flag=1//FI_Type |= 0x02
+fault 4//if frameIdx>=800 and frameIdx<1050.0://FI_flag=1//FI_Type |= 0x02
+fault 5//if frameIdx>=900 and frameIdx<1150.0://FI_flag=1//FI_Type |= 0x02
+fault 6//if frameIdx>=1000 and frameIdx<1250.0://FI_flag=1//FI_Type |= 0x02
+fault 7//if frameIdx>=1100 and frameIdx<1350.0://FI_flag=1//FI_Type |= 0x02
+fault 8//if frameIdx>=1200 and frameIdx<1450.0://FI_flag=1//FI_Type |= 0x02
+fault 9//if frameIdx>=1300 and frameIdx<1550.0://FI_flag=1//FI_Type |= 0x02
+fault 10//if frameIdx>=1400 and frameIdx<1650.0://FI_flag=1//FI_Type |= 0x02
+fault 11//if frameIdx>=1500 and frameIdx<1750.0://FI_flag=1//FI_Type |= 0x02
+fault 12//if frameIdx>=1600 and frameIdx<1850.0://FI_flag=1//FI_Type |= 0x02
+fault 13//if frameIdx>=1700 and frameIdx<1950.0://FI_flag=1//FI_Type |= 0x02
+fault 14//if frameIdx>=1800 and frameIdx<2050.0://FI_flag=1//FI_Type |= 0x02
+fault 15//if frameIdx>=1900 and frameIdx<2150.0://FI_flag=1//FI_Type |= 0x02
+fault 16//if frameIdx>=2000 and frameIdx<2250.0://FI_flag=1//FI_Type |= 0x02
+fault 17//if frameIdx>=2100 and frameIdx<2350.0://FI_flag=1//FI_Type |= 0x02
+fault 18//if frameIdx>=2200 and frameIdx<2450.0://FI_flag=1//FI_Type |= 0x02
+fault 19//if frameIdx>=2300 and frameIdx<2550.0://FI_flag=1//FI_Type |= 0x02
+fault 20//if frameIdx>=2400 and frameIdx<2650.0://FI_flag=1//FI_Type |= 0x02
+fault 21//if frameIdx>=2500 and frameIdx<2750.0://FI_flag=1//FI_Type |= 0x02
+fault 22//if frameIdx>=2600 and frameIdx<2850.0://FI_flag=1//FI_Type |= 0x02
+fault 23//if frameIdx>=2700 and frameIdx<2950.0://FI_flag=1//FI_Type |= 0x02
+fault 24//if frameIdx>=2800 and frameIdx<3050.0://FI_flag=1//FI_Type |= 0x02
+fault 25//if frameIdx>=2900 and frameIdx<3150.0://FI_flag=1//FI_Type |= 0x02
+fault 26//if frameIdx>=3000 and frameIdx<3250.0://FI_flag=1//FI_Type |= 0x02
+fault 27//if frameIdx>=3100 and frameIdx<3350.0://FI_flag=1//FI_Type |= 0x02
+fault 28//if frameIdx>=3200 and frameIdx<3450.0://FI_flag=1//FI_Type |= 0x02
+fault 29//if frameIdx>=3300 and frameIdx<3550.0://FI_flag=1//FI_Type |= 0x02
+fault 30//if frameIdx>=3400 and frameIdx<3650.0://FI_flag=1//FI_Type |= 0x02
+fault 31//if frameIdx>=3500 and frameIdx<3750.0://FI_flag=1//FI_Type |= 0x02
+fault 32//if frameIdx>=3600 and frameIdx<3850.0://FI_flag=1//FI_Type |= 0x02
+fault 33//if frameIdx>=3700 and frameIdx<3950.0://FI_flag=1//FI_Type |= 0x02
+fault 34//if frameIdx>=3800 and frameIdx<4050.0://FI_flag=1//FI_Type |= 0x02
+fault 35//if frameIdx>=3900 and frameIdx<4150.0://FI_flag=1//FI_Type |= 0x02
+fault 36//if frameIdx>=4000 and frameIdx<4250.0://FI_flag=1//FI_Type |= 0x02
+fault 37//if frameIdx>=4100 and frameIdx<4350.0://FI_flag=1//FI_Type |= 0x02
+fault 38//if frameIdx>=4200 and frameIdx<4450.0://FI_flag=1//FI_Type |= 0x02
+fault 39//if frameIdx>=4300 and frameIdx<4550.0://FI_flag=1//FI_Type |= 0x02
+fault 40//if frameIdx>=4400 and frameIdx<4650.0://FI_flag=1//FI_Type |= 0x02
 Total number of fault cases: 40

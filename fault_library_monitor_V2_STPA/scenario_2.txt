@@ -1,23 +1,23 @@
 title:2_max_brake
 location//tools/sim/bridge.py//#throttle:HOOK#
-fault 1//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 2//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 3//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 4//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 5//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 6//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 7//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 8//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 9//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 10//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 11//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 12//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 13//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 14//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 15//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 16//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 17//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 18//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 19//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
-fault 20//if headway_time>2.0 and RSpeed<=0 and vLead!=0://FI_Type=2//FI_flage=1
+fault 1//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 2//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 3//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 4//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 5//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 6//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 7//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 8//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 9//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 10//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 11//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 12//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 13//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 14//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 15//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 16//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 17//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 18//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 19//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
+fault 20//if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False)://FI_flag=1//FI_Type |= 0x02
 Total number of fault cases: 20
