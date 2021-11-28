@@ -576,10 +576,10 @@ def bridge(q):
       #throttle:HOOK#
 
       # manual FI examples
-      if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
-        FI_Type |= 0x01
-        FI_flag = 1
-        FI_duration = 100
+      # if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
+      #   FI_Type |= 0x01
+      #   FI_flag = 1
+      #   FI_duration = 100
       #   FI_H3_combine_enable = 1
 
       # if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):
