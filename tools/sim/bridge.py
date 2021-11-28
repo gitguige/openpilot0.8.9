@@ -48,8 +48,8 @@ vEgo = 60 #mph #set in selfdrive/controlsd
 FI_Enable = True #False: run the code in fault free mode; True: add fault inejction Engine 
 reInitialize_bridge = False
 
-Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
-Driver_react_Enable = False
+Mode_FI_duration = 0 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
+Driver_react_Enable = True
 Other_vehicles_Enable = False
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
@@ -362,7 +362,7 @@ def bridge(q):
   fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection,faultType,alert,hazard,hazardType,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath,leftEdge,rightEdge\n")
   speed = 0
   throttle_out_hist = 0
-  FI_time_budget = 250 #250*10ms =2.5s
+  FI_duration = 1000# set to be a larget value like 10 seconds so it won't be reached in the normal case with human driver engagement #250*10ms =2.5s
   Num_laneInvasion = 0
   t_laneInvasion = 0
   pathleft = pathright = 0
@@ -576,9 +576,10 @@ def bridge(q):
       #throttle:HOOK#
 
       # manual FI examples
-      # if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
-      #   FI_Type |= 0x01
-      #   FI_flag = 1
+      if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
+        FI_Type |= 0x01
+        FI_flag = 1
+        FI_duration = 100
       #   FI_H3_combine_enable = 1
 
       # if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):
@@ -610,22 +611,23 @@ def bridge(q):
           
       #execute fault injection
       if FI_flag > 0:
-        if faulttime == -1:
-          faulttime = frameIdx
-        fault_duration += 1
+        if fault_duration < FI_duration: #time budget
+          if faulttime == -1:
+            faulttime = frameIdx
+          fault_duration += 1
 
-        if FI_Type&0x01: # max gas
-          throttle_out=0.6
-          brake_out=0
-        if FI_Type&0x02: #max brake
-          throttle_out=0
-          brake_out = 1
-        if FI_Type&0x04: #max left steer
-          steer_carla = vc.steer - 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
-          steer_carla = np.clip(steer_carla, -1,1)
-        if FI_Type&0x08: #max right steer
-          steer_carla = vc.steer + 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
-          steer_carla = np.clip(steer_carla, -1,1)
+          if FI_Type&0x01: # max gas
+            throttle_out=0.6
+            brake_out=0
+          if FI_Type&0x02: #max brake
+            throttle_out=0
+            brake_out = 1
+          if FI_Type&0x04: #max left steer
+            steer_carla = vc.steer - 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            steer_carla = np.clip(steer_carla, -1,1)
+          if FI_Type&0x08: #max right steer
+            steer_carla = vc.steer + 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            steer_carla = np.clip(steer_carla, -1,1)
 
 
     vc.throttle = throttle_out/0.6

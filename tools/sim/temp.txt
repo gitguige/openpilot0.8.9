@@ -1,1 +1,1 @@
-startupMaster/permanent||buttonEnable/enable,H2,1404,-1,2736,False,True,1584,0
+,,-1,-1,-1,False,False,0,0

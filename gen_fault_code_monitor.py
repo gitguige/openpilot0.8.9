@@ -81,15 +81,15 @@ def write_both_to_file(code,code_STPA, title, fileLoc, faultLoc):
 #################################################################################3
 
 ##########################################################################################################
-def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code=''):
+def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code='',change_duraiton=False):
 		
 	trigger = 'frameIdx' #trigger_random
 	code = []
 	code_STPA=[]
 	#param = []
 	# N_duration =4
-	per_time_range = 1
-	time_partition = np.arange(5,45,per_time_range) 
+	per_time_range = 2
+	time_partition = np.arange(0,40,per_time_range) 
 	valuelist = []
 	valuelist.append(newvalue)
 	if newvalue2:
@@ -101,14 +101,19 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 	for valueitem in valuelist:
 		#random FI
 		for tindex in range(len(time_partition)): #10
-			trigger_time = random.randint(time_partition[tindex],time_partition[tindex]+per_time_range-1) #t
-			stop_time = trigger_time + 2.5 # 2.5s
-			code.append(gen_stuck_code('',trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code))
+			trigger_time = random.randint(time_partition[tindex]*100,time_partition[tindex]*100+per_time_range*100-1) #t
+			stop_time = trigger_time + 250 # 2.5s
+			code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code))
 
 		#STPA FI
 		for trigger_STPA in trigger_STPA_list:
-			for round in range(20): #repeat for xx times
-				code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code))
+			if change_duraiton:
+				for duration in range(50,250,10):
+					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10))
+					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
+			else:
+				for round in range(20): #repeat for xx times
+					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code))
 
 	write_both_to_file(code,code_STPA, title, fileLoc, faultLoc)
 
@@ -202,6 +207,35 @@ def gen_max_throttle(sceneNum):#S1
 
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
 
+	
+def gen_max_throttle_random_duration(sceneNum):#S7
+	title = str(sceneNum)+'_max_throttle_random_duration'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'FI_flag'
+	newvalue = '1'
+	# newvalue2 = '4'
+	additional_code='//FI_Type |= 0x01'
+
+	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
+	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
+
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraiton=True)
+
+def gen_max_steer_right_random_duration(sceneNum):#S8
+	title = str(sceneNum)+'_max_steer_right_random_duration'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'FI_flag'
+	newvalue = '1'
+	# newvalue2 = '4'
+	additional_code='//FI_Type |= 0x08'
+
+	trigger_STPA_list = ['if speed>15 and laneLineleft<1.25:'] 
+
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraiton=True)
+
+
 def gen_max_brake(sceneNum):#S2
 	title = str(sceneNum)+'_max_brake'
 	fileLoc = 'tools/sim/bridge.py'
@@ -288,13 +322,13 @@ scenarios = {
 4 : gen_max_steer_right,
 5 : gen_max_throttle_steer,
 6 : gen_max_brake_steer,
-# 7 : gen_aboveTarget_sub_vRel,
-# 8 : gen_aboveTarget_stuck_vRel,
+7 : gen_max_throttle_random_duration,
+8 : gen_max_steer_right_random_duration,
 
 
 }
 
 random.seed(3) 
-for sceneNum in [1,2,3,4,5,6]:
+for sceneNum in [1,2,3,4,5,6,7,8]:
 	scenarios[sceneNum](sceneNum)
 
