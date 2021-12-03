@@ -29,11 +29,11 @@ cd tools/sim/
 
 3. open a new terminal and run bridge thread
 ```
-./run_brisge.sh (cruise_speed_lead) (initial_relative_distance)
+./run_brisge.sh (cruise_speed_lead) (initial_relative_distance) (new cruise_speed_lead)
 ```
 
 ## steps to run simualations with fault injection
 replace the last step above with the following instruction:
 ```
-./run_fault_inject_XXX.sh
+./run_fault_inject_XXX.sh (e.g., run_fault_inject_monitor_V2_campaign.sh for random FI)
 ```

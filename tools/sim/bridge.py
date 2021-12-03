@@ -49,7 +49,7 @@ FI_Enable = True #False: run the code in fault free mode; True: add fault inejct
 reInitialize_bridge = False
 
 Mode_FI_duration = 0 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
-Driver_react_Enable = True
+Driver_react_Enable = False
 Other_vehicles_Enable = False
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
@@ -238,7 +238,7 @@ def bridge(q):
 
   #=====add second vehicle=====
   spawn_point2 = carla.Transform(spawn_point.location,spawn_point.rotation)
-  spawn_point2.location.y   += 100#20
+  spawn_point2.location.y   += args.init_dist#20
   vehicle2 = world.spawn_actor(vehicle_bp, spawn_point2)
   # vehicle2.set_autopilot(True)
 
@@ -249,6 +249,17 @@ def bridge(q):
     spawn_point3.location.x   += 7
     spawn_point3.rotation.yaw += 25
     vehicle3 = world.spawn_actor(vehicle_bp, spawn_point3) #following vehicle
+
+    spawn_point4 = carla.Transform(spawn_point1.location,spawn_point1.rotation)
+    spawn_point4.location.x   += 4
+    spawn_point4.location.y   += 15
+    vehicle4 = world.spawn_actor(vehicle_bp, spawn_point4)
+
+    spawn_point5 = carla.Transform(spawn_point1.location,spawn_point1.rotation)
+    spawn_point5.location.x   += 5
+    spawn_point5.location.y   -= 15
+    spawn_point5.rotation.yaw += 13
+    vehicle5 = world.spawn_actor(vehicle_bp, spawn_point5)
 
   spectator = world.get_spectator()
   transform = vehicle.get_transform()
@@ -359,7 +370,7 @@ def bridge(q):
   is_autopilot_engaged =False #vehicle2
 
   fp_res = open('results/data_ADS1_{}mph_{}m_{}V0_{}V0.csv'.format(vEgo,args.init_dist,args.cruise_lead,args.cruise_lead2),'w')
-  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection,faultType,alert,hazard,hazardType,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath,leftEdge,rightEdge\n")
+  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,d_rel(m),v_rel(m/s),c_path(m),faultinjection,faultType,alert,hazard,hazardType,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath,leftEdge,rightEdge,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y\n")
   speed = 0
   throttle_out_hist = 0
   FI_duration = 1000# set to be a larget value like 10 seconds so it won't be reached in the normal case with human driver engagement #250*10ms =2.5s
@@ -448,6 +459,9 @@ def bridge(q):
         vehicle2.set_autopilot(True,8008)
         if Other_vehicles_Enable:
           vehicle3.set_autopilot(True,8008)
+          vehicle4.set_autopilot(True,8008)
+          vehicle5.set_autopilot(True,8008)
+
         if m[1] == "down":
           cruise_button = CruiseButtons.DECEL_SET
           is_openpilot_engaged = True
@@ -628,6 +642,8 @@ def bridge(q):
           if FI_Type&0x08: #max right steer
             steer_carla = vc.steer + 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
             steer_carla = np.clip(steer_carla, -1,1)
+        else:
+          FI_flag = 0
 
 
     vc.throttle = throttle_out/0.6
@@ -653,6 +669,13 @@ def bridge(q):
     vehicle_state.angle = steer_out
     vehicle_state.cruise_button = cruise_button
     vehicle_state.is_engaged = is_openpilot_engaged
+
+    vel_pos = vehicle.get_transform().location
+    vel2_pos = vehicle2.get_transform().location
+    vel4_pos = vel2_pos
+    if Other_vehicles_Enable:
+      vel4_pos = vehicle4.get_transform().location
+    
 
     #-----------------------------------------------------
     if frameIdx == 1000:
@@ -732,7 +755,7 @@ def bridge(q):
 
     #result record in files
     if is_openpilot_engaged :#and (frameIdx%20==0 or (dRel<1 and Lead_vehicle_in_vision)): #record every 20*10=0.2s
-      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,dRel,-vRel,yRel,FI_flag>0,FI_Type if FI_flag else 0 ,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight))
+      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,dRel,-vRel,yRel,FI_flag>0,FI_Type if FI_flag else 0 ,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y))
 
     rk.keep_time()
     throttle_out_hist = vc.throttle
@@ -764,6 +787,10 @@ def bridge(q):
   if Other_vehicles_Enable:
     vehicle3.set_autopilot(False,8008)
     vehicle3.destroy()
+    vehicle4.set_autopilot(False,8008)
+    vehicle4.destroy()
+    vehicle5.set_autopilot(False,8008)
+    vehicle5.destroy()
 
   fp_res.close()
   # os.killpg(os.getpgid(os.getpid()), signal.SIGINT) #kill the remaining threads
