@@ -48,7 +48,7 @@ vEgo = 60 #mph #set in selfdrive/controlsd
 FI_Enable = True #False: run the code in fault free mode; True: add fault inejction Engine 
 reInitialize_bridge = False
 
-Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
+Mode_FI_duration = 0 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
 Driver_react_Enable = False
 Other_vehicles_Enable = False
 
@@ -73,22 +73,6 @@ def steer_rate_limit(old, new):
     return old - limit
   else:
     return new
-
-def throttle_limit_FI(speed,throttle):
-  # speed limit to 1.1 vEgo
-  accel_FI = throttle*4.0
-  speed_next = speed + accel_FI*0.01 #100Hz
-  while(speed_next>1.1*vEgo*0.4407 and accel_FI>0): #1MPH=1.609344*1000M/3600S
-    accel_FI -= 0.01
-    speed_next = speed + accel_FI*0.01 #100Hz update estimation
-
-  if accel_FI>2.0:
-    accel_FI = 2.0
-  if accel_FI < 0:
-    accel_FI = 0
-  return accel_FI/4.0
-
-  
 
 frame_id = 0
 def cam_callback(image):
@@ -621,14 +605,6 @@ def bridge(q):
       #   FI_Type |= 0x02
       #   FI_flag=1
 
-      # if speed>15 and laneLineleft>-1.25:
-      #   FI_flag=1
-      #   FI_Type |= 0x04
-
-      # if speed>15 and laneLineleft<1.25:
-      #   FI_flag=1
-      #   FI_Type |= 0x08
-
       if FI_H3_combine_enable:
         if speed>15 and laneLineleft>-1.25:
           FI_Type |= 0x04
@@ -660,18 +636,16 @@ def bridge(q):
           fault_duration += 1
 
           if FI_Type&0x01: # max gas
-            # throttle_out=0.5 #0.5*4=2m/s**2
-            throttle_out = throttle_limit_FI(vehicle_state.speed,0.5)
+            throttle_out=0.6
             brake_out=0
-
           if FI_Type&0x02: #max brake
             throttle_out=0
-            brake_out = 0.875 #0.875*4=-3.5 m/s**2
+            brake_out = 1
           if FI_Type&0x04: #max left steer
-            steer_carla = vc.steer - 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            steer_carla = vc.steer - 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
             steer_carla = np.clip(steer_carla, -1,1)
           if FI_Type&0x08: #max right steer
-            steer_carla = vc.steer + 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            steer_carla = vc.steer + 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
             steer_carla = np.clip(steer_carla, -1,1)
         else:
           FI_flag = 0
