@@ -88,7 +88,10 @@ def throttle_limit_FI(speed,throttle):
     accel_FI = 0
   return accel_FI/4.0
 
-  
+def driver_brake_simulator(t_brake):
+  driver_brake_tmp = math.exp(10*t_brake-12)
+  driver_brake_out = clip(driver_brake_tmp/(1+driver_brake_tmp),0,1) #1
+  return driver_brake_out
 
 frame_id = 0
 def cam_callback(image):
@@ -647,10 +650,12 @@ def bridge(q):
           #stop fault injection 
           FI_flag = -1 
           #human driver reaction # full brake
-          if FI_Type&0x01: # max gas
+          # if FI_Type&0x01: # max gas
+          if FI_Type&0b1101: # max steer or gas
             throttle_out = 0
-            brake_out = 1
-            steer_carla = 0      
+            brake_out = driver_brake_simulator(frameIdx-driver_alerted_time-250)#1
+            if FI_Type&0x01: # max gas
+              steer_carla = 0   
           
       #execute fault injection
       if FI_flag > 0:
@@ -716,7 +721,7 @@ def bridge(q):
         break
 
     #------------------------------------------------------
-    if driver_alerted_time == -1 and fault_duration>0 and (alert or throttle_out>= 0.6 or speed>1.1*vEgo or brake_out>0.95): #max gas//max brake//exceed speed limit
+    if driver_alerted_time == -1 and fault_duration>0 and (alert or throttle_out>= 0.6 or speed>1.1*vEgo*0.4407 or brake_out>0.95): #max gas//max brake//exceed speed limit
       driver_alerted_time =frameIdx #driver is alerted
 
     #Accident: collision 
