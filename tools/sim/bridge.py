@@ -621,6 +621,7 @@ def bridge(q):
       #   FI_H3_combine_enable = 1
 
       # if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):
+      # if speed>0 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):
       #   FI_Type |= 0x02
       #   FI_flag=1
 

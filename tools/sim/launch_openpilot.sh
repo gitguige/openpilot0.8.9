@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ~/venvOP3.8.10/bin/activate
+source ~/venvOPnew/bin/activate
 
 export PYTHONPATH=$PYTHONPATH:$PWD/../../
 export PASSIVE="0"

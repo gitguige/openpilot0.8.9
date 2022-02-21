@@ -1,5 +1,5 @@
 #!/bin/bash
-source ~/venvOP3.8.10/bin/activate
+source ~/venvOPnew/bin/activate
 export PYTHONPATH="$PWD":$PYTHONPATH
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"

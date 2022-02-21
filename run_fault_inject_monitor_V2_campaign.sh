@@ -11,5 +11,9 @@
 # python3 run.py fault_library_monitor_V2/scenario_14
 # python3 run.py fault_library_monitor_V2/scenario_15
 # python3 run.py fault_library_monitor_V2/scenario_16
-python3 run.py fault_library_monitor_V2/scenario_21
+# python3 run.py fault_library_monitor_V2/scenario_21
+# python3 run.py fault_library_monitor_V2/scenario_22
+# python3 run.py fault_library_monitor_V2/scenario_23
 python3 run.py fault_library_monitor_V2/scenario_24
+python3 run.py fault_library_monitor_V2/scenario_25
+python3 run.py fault_library_monitor_V2/scenario_26
