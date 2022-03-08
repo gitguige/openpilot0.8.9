@@ -100,10 +100,10 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 
 	for valueitem in valuelist:
 		#random FI
-		for tindex in range(len(time_partition)): #10
+		for tindex in range(len(time_partition)): #20
 			trigger_time = random.randint(time_partition[tindex]*100,time_partition[tindex]*100+per_time_range*100-1) #t
-			if change_duraitont0:
-				for duration in range(50,250,20):
+			if change_duraitont0: #randm duration and start time 
+				for duration in range(50,250,20):  #10
 					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10))
 					stop_time = trigger_time + duration
 					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
@@ -466,19 +466,19 @@ with open('run_fault_inject_monitor_V2_STPA_campaign.sh', 'w') as runFile:
     runFile.write('#Usage: python3 run.py  fault_library_monitor_V2_STPA\n')
 	
 scenarios = {
-1 : gen_max_throttle,
+1 : gen_max_throttle, #STPA, and random t0&fixed duration
 2 : gen_max_brake,
 3 : gen_max_steer_left,
 4 : gen_max_steer_right,
 5 : gen_max_throttle_steer,
 6 : gen_max_brake_steer,
-11 : gen_max_throttle_random_duration,
+11 : gen_max_throttle_random_duration, #STPA
 12 : gen_max_brake_random_duration,
 13 : gen_max_steer_left_random_duration,
 14 : gen_max_steer_right_random_duration,
 15 : gen_max_throttle_steer_random_duration,
 16 : gen_max_brake_steer_random_duration,
-21 : gen_max_throttle_random_t0,
+21 : gen_max_throttle_random_t0, #random t0 and random duration
 22 : gen_max_brake_random_t0,
 23 : gen_max_steer_left_random_t0,
 24 : gen_max_steer_right_random_t0,

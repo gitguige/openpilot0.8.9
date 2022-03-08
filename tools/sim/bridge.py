@@ -45,7 +45,7 @@ PRINT_DECIMATION = 100
 STEER_RATIO = 15.
 
 vEgo = 60 #mph #set in selfdrive/controlsd
-FI_Enable = True #False: run the code in fault free mode; True: add fault inejction Engine 
+FI_Enable = False #True #False: run the code in fault free mode; True: add fault inejction Engine 
 reInitialize_bridge = False
 
 Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
@@ -674,10 +674,10 @@ def bridge(q):
             throttle_out=0
             brake_out = 0.875 #0.875*4=-3.5 m/s**2
           if FI_Type&0x04: #max left steer
-            steer_carla = vc.steer - 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            steer_carla = vc.steer - 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.25 degree at each step
             steer_carla = np.clip(steer_carla, -1,1)
           if FI_Type&0x08: #max right steer
-            steer_carla = vc.steer + 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            steer_carla = vc.steer + 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.25 degree at each step
             steer_carla = np.clip(steer_carla, -1,1)
         else:
           FI_flag = 0

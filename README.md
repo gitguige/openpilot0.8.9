@@ -37,3 +37,10 @@ replace the last step above with the following instruction:
 ```
 ./run_fault_inject_XXX.sh (e.g., run_fault_inject_monitor_V2_campaign.sh for random FI)
 ```
+Context-Aware: use STPA FI campaign 1-6;
+
+Random-ST: use random FI campaign 1-6;
+
+Random-DUR: use STPA FI canpaign 11-16;
+
+Radnom-ST-DUR: use random FI campaign 21-26;
