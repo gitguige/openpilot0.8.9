@@ -715,7 +715,8 @@ def bridge(q):
       if "PandaAlert" not in alertType_list:
         alertType_list.append("PandaAlert")
         if(alerttime== -1):
-          alerttime = frameIdx    
+          alerttime = frameIdx   
+        print("=================PandaAlert============================")
       #block the command output if any safety violations is detected
       #ToThink More:
       #Is simply block the output safe? 
