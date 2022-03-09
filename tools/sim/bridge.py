@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from operator import truediv
 import carla # pylint: disable=import-error
 import math
 import numpy as np
@@ -44,9 +45,12 @@ REPEAT_COUNTER = 5
 PRINT_DECIMATION = 100
 STEER_RATIO = 15.
 
-vEgo = 60 #mph #set in selfdrive/controlsd
+vEgo = 60 #mph #set in selfdrive/controls/controlsd
 FI_Enable = False #True #False: run the code in fault free mode; True: add fault inejction Engine 
 reInitialize_bridge = False
+
+Strategic_value_selection = False # Only set this to True for CAWT FI
+Fixed_value_corruption = False # valid only when Strategic_value_selection=False
 
 Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
 Driver_react_Enable = False
@@ -604,6 +608,7 @@ def bridge(q):
     RSpeed = -vRel #v_Ego -V_Lead
 
     if FI_Enable == True:  
+      FI_percent = 100 #value corruption percentage 0~100%
       if Mode_FI_duration>0:  #
         if FI_flag>0: #reset  FI
           FI_flag = 0 
@@ -666,22 +671,61 @@ def bridge(q):
           fault_duration += 1
 
           if FI_Type&0x01: # max gas
-            # throttle_out=0.5 #0.5*4=2m/s**2
-            throttle_out = throttle_limit_FI(vehicle_state.speed,0.5)
+            if Strategic_value_selection:
+              # throttle_out=0.5 #0.5*4=2m/s**2
+              throttle_out = throttle_limit_FI(vehicle_state.speed,0.5)
+            elif Fixed_value_corruption:
+              throttle_out = 0.6
+            else:
+              throttle_out = 1*FI_percent*0.01
             brake_out=0
 
           if FI_Type&0x02: #max brake
             throttle_out=0
-            brake_out = 0.875 #0.875*4=-3.5 m/s**2
+            if Strategic_value_selection:
+              brake_out = 0.875 #0.875*4=-3.5 m/s**2
+            else:
+              brake_out = 1*FI_percent*0.01 
+
           if FI_Type&0x04: #max left steer
-            steer_carla = vc.steer - 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.25 degree at each step
+            if Strategic_value_selection:
+              steer_carla = vc.steer - 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.25 degree at each step
+            elif Fixed_value_corruption:
+              steer_carla = vc.steer - 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            else:
+              steer_carla = vc.steer - 1*FI_percent*0.01 /(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
             steer_carla = np.clip(steer_carla, -1,1)
+
           if FI_Type&0x08: #max right steer
-            steer_carla = vc.steer + 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.25 degree at each step
+            if Strategic_value_selection:
+              steer_carla = vc.steer + 0.25/(max_steer_angle * STEER_RATIO ) #maximum change 0.25 degree at each step
+            elif Fixed_value_corruption:
+              steer_carla = vc.steer + 0.5/(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
+            else:
+              steer_carla = vc.steer + 1*FI_percent*0.01 /(max_steer_angle * STEER_RATIO ) #maximum change 0.5 degree at each step
             steer_carla = np.clip(steer_carla, -1,1)
         else:
           FI_flag = 0
 
+
+    #simulate panda safety check
+    if steer_carla>0.25 or brake_out>0.875 or throttle_out>0.5:
+      alert = True
+      altMsg = "PandaAlert"
+      if "PandaAlert" not in alertType_list:
+        alertType_list.append("PandaAlert")
+        if(alerttime== -1):
+          alerttime = frameIdx    
+      #block the command output if any safety violations is detected
+      #ToThink More:
+      #Is simply block the output safe? 
+      #e.g., brake=0 might be unsafe if HWT<2s
+      if steer_carla>0.25:
+        steer_carla = 0
+      if brake_out>0.875:
+        brake_out = 0
+      if throttle_out>0.5:
+        throttle_out = 0
 
     vc.throttle = throttle_out/0.6
     vc.steer = steer_carla
@@ -740,7 +784,7 @@ def bridge(q):
         if hazType&0x04 == 0:
           hazard = True
           hazardtime =frameIdx
-          hazMsg +="H3"
+          hazMsg +="||H3"
           hazType |= 0x04 #0b 100
 
       

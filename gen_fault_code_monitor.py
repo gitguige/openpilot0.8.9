@@ -1,3 +1,4 @@
+from curses.ascii import FF
 import os
 import numpy as np
 import random
@@ -83,6 +84,7 @@ def write_both_to_file(code,code_STPA, title, fileLoc, faultLoc):
 ##########################################################################################################
 def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code='',change_duraiton=False,change_duraitont0=False):
 		
+	title1 = ""
 	trigger = 'frameIdx' #trigger_random
 	code = []
 	code_STPA=[]
@@ -102,25 +104,39 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 		#random FI
 		for tindex in range(len(time_partition)): #20
 			trigger_time = random.randint(time_partition[tindex]*100,time_partition[tindex]*100+per_time_range*100-1) #t
-			if change_duraitont0: #randm duration and start time 
+			if change_duraitont0: #randm duration and start time : S21-S26
 				for duration in range(50,250,20):  #10
 					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10))
 					stop_time = trigger_time + duration
 					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
-			else:
-				stop_time = trigger_time + 250 # 2.5s
-				code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code))
+			else: #random start time
+				if change_duraiton: # radndom t0* random duration * random value = 5*4 * 10 = 200: S11-S16
+					title1 = title[:-8] + "totally"
+					if tindex%4 == 0: #5
+						for t_duration in range(50,250,50): # 4
+							duration = random.randint(t_duration,t_duration+50)
+							for t_percent in range(0,100,10): #0~100%
+								FI_percent = random.randint(t_percent,t_percent+10)
+								additional_code1 = additional_code + "//FI_duration = {}//FI_percent = {}".format(duration,FI_percent)
+								stop_time = trigger_time + duration
+								code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
+				else: # Fixed duration 2.5s: S1-S6
+					stop_time = trigger_time + 250 
+					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code))
 
 		#STPA FI
 		for trigger_STPA in trigger_STPA_list:
-			if change_duraiton:
-				for duration in range(50,250,10):
+			if change_duraiton: #random duration + STPA start time
+				for duration in range(50,250,10): # 20, S11-S16
 					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10))
 					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
 			else:
-				for round in range(20): #repeat for xx times
+				for round in range(20): #repeat for xx times: S1-S6
 					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code))
-
+	
+	#update title is title1 is not null
+	if len(title1): 
+		title = title1 
 	write_both_to_file(code,code_STPA, title, fileLoc, faultLoc)
 
 def gen_add_code_common_multiplestoptime(title,fileLoc,faultLoc,variable,direction,early_start=False): #direction: 0-decreade, 1-increase
@@ -198,7 +214,7 @@ def gen_bitflip_sub_dRel(sceneNum): #S13
 
 	gen_add_code_common_multiplestoptime(title,fileLoc,faultLoc,variable, False,early_start=True)
 
-
+##########################################################################################
 def gen_max_throttle(sceneNum):#S1
 	title = str(sceneNum)+'_max_throttle'
 	fileLoc = 'tools/sim/bridge.py'
@@ -368,7 +384,7 @@ def gen_max_brake_steer_random_duration(sceneNum):#S16
 
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraiton=True)
 
-###############
+##########################################################################################
 def gen_max_throttle_random_t0(sceneNum):#S21
 	title = str(sceneNum)+'_max_throttle_random_t0'
 	fileLoc = 'tools/sim/bridge.py'

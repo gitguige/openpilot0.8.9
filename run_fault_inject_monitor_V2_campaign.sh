@@ -5,15 +5,15 @@
 # python3 run.py fault_library_monitor_V2/scenario_4
 # python3 run.py fault_library_monitor_V2/scenario_5
 # python3 run.py fault_library_monitor_V2/scenario_6
-# python3 run.py fault_library_monitor_V2/scenario_11
-# python3 run.py fault_library_monitor_V2/scenario_12
-# python3 run.py fault_library_monitor_V2/scenario_13
-# python3 run.py fault_library_monitor_V2/scenario_14
-# python3 run.py fault_library_monitor_V2/scenario_15
-# python3 run.py fault_library_monitor_V2/scenario_16
+python3 run.py fault_library_monitor_V2/scenario_11
+python3 run.py fault_library_monitor_V2/scenario_12
+python3 run.py fault_library_monitor_V2/scenario_13
+python3 run.py fault_library_monitor_V2/scenario_14
+python3 run.py fault_library_monitor_V2/scenario_15
+python3 run.py fault_library_monitor_V2/scenario_16
 # python3 run.py fault_library_monitor_V2/scenario_21
 # python3 run.py fault_library_monitor_V2/scenario_22
 # python3 run.py fault_library_monitor_V2/scenario_23
-python3 run.py fault_library_monitor_V2/scenario_24
-python3 run.py fault_library_monitor_V2/scenario_25
-python3 run.py fault_library_monitor_V2/scenario_26
+# python3 run.py fault_library_monitor_V2/scenario_24
+# python3 run.py fault_library_monitor_V2/scenario_25
+# python3 run.py fault_library_monitor_V2/scenario_26
