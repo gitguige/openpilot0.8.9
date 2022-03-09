@@ -46,7 +46,7 @@ PRINT_DECIMATION = 100
 STEER_RATIO = 15.
 
 vEgo = 60 #mph #set in selfdrive/controls/controlsd
-FI_Enable = False #True #False: run the code in fault free mode; True: add fault inejction Engine 
+FI_Enable = True #True #False: run the code in fault free mode; True: add fault inejction Engine 
 reInitialize_bridge = False
 
 Strategic_value_selection = False # Only set this to True for CAWT FI
@@ -721,13 +721,17 @@ def bridge(q):
       #ToThink More:
       #Is simply block the output safe? 
       #e.g., brake=0 might be unsafe if HWT<2s
-      if steer_carla>0.25:
+      if FI_flag!=-1: #if Driver has not engaged yet
         steer_carla = 0
-      if brake_out>0.875:
         brake_out = 0
-      if throttle_out>0.5:
         throttle_out = 0
-
+      # if steer_carla>0.25:
+      #   steer_carla = 0
+      # if brake_out>0.875:
+      #   brake_out = 0
+      # if throttle_out>0.5:
+      #   throttle_out = 0
+      
     vc.throttle = throttle_out/0.6
     vc.steer = steer_carla
     vc.brake = brake_out
