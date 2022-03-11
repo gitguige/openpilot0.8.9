@@ -46,15 +46,17 @@ PRINT_DECIMATION = 100
 STEER_RATIO = 15.
 
 vEgo = 60 #mph #set in selfdrive/controls/controlsd
-FI_Enable = True #True #False: run the code in fault free mode; True: add fault inejction Engine 
+Other_vehicles_Enable = False
 reInitialize_bridge = False
+
+FI_Enable = True #True #False: run the code in fault free mode; True: add fault inejction Engine 
+Panda_SafetyCheck_Enable = True
+Driver_react_Enable = True
+Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
 
 Strategic_value_selection = False # Only set this to True for CAWT FI
 Fixed_value_corruption = False # valid only when Strategic_value_selection=False
 
-Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
-Driver_react_Enable = False
-Other_vehicles_Enable = False
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
 sm = messaging.SubMaster(['carControl','controlsState','radarState','modelV2'])
@@ -93,7 +95,7 @@ def throttle_limit_FI(speed,throttle):
   return accel_FI/4.0
 
 def driver_brake_simulator(t_brake):
-  driver_brake_tmp = math.exp(10*t_brake-12)
+  driver_brake_tmp = math.exp(10*t_brake*0.01-12) #1 iteration =0.01 sencods
   driver_brake_out = clip(driver_brake_tmp/(1+driver_brake_tmp),0,1) #1
   return driver_brake_out
 
@@ -423,7 +425,7 @@ def bridge(q):
   FI_flag = 0 
   FI_Type = 0
   frameIdx = 0
-  FI_H3_combine_enable = 0
+  FI_Context_H3_combine_enable = 0
   while frameIdx<5000:
 
     altMsg = ""
@@ -612,18 +614,24 @@ def bridge(q):
       if Mode_FI_duration>0:  #
         if FI_flag>0: #reset  FI
           FI_flag = 0 
-          FI_Type = 0
+          # FI_Type = 0
 
       #*********************************************#
       #condition to activate fault injection
       #throttle:HOOK#
+      if frameIdx>=3029 and frameIdx<3279:
+        FI_flag=1
+        FI_Type |= 0x05
+
+        FI_duration = 150
+        FI_percent = 20
 
       # manual FI examples
       # if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
       #   FI_Type |= 0x01
       #   FI_flag = 1
       #   FI_duration = 100
-      #   FI_H3_combine_enable = 1
+      #   FI_Context_H3_combine_enable = 1
 
       # if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):
       # if speed>0 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):
@@ -638,7 +646,7 @@ def bridge(q):
       #   FI_flag=1
       #   FI_Type |= 0x08
 
-      if FI_H3_combine_enable:
+      if FI_Context_H3_combine_enable:
         if speed>15 and laneLineleft>-1.25:
           FI_Type |= 0x04
           FI_flag=1
@@ -652,6 +660,10 @@ def bridge(q):
         
       #condition to stop fault injection and start human driver engagement if FI
       if Driver_react_Enable == True:
+        if H2_count > 5: #stop braking after the Ego stops safety already and avoid road congestion 
+          driver_alerted_time = -1
+          FI_flag = 0
+          FI_Type = 0
         if driver_alerted_time >= 0 and frameIdx >=250 + driver_alerted_time: #average reaction time 2.5s
           #stop fault injection 
           FI_flag = -1 
@@ -660,8 +672,11 @@ def bridge(q):
           if FI_Type&0b1101: # max steer or gas
             throttle_out = 0
             brake_out = driver_brake_simulator(frameIdx-driver_alerted_time-250)#1
-            if FI_Type&0x01: # max gas
-              steer_carla = 0   
+            # if FI_Type&0x01: # max gas
+            #   steer_carla = 0   
+          print("Driver:",frameIdx,driver_alerted_time,frameIdx-driver_alerted_time)
+
+          # print("FI_Type={},throttle_out={},brake_out={},steer_carla={}".format(FI_Type,throttle_out,brake_out,steer_carla))
           
       #execute fault injection
       if FI_flag > 0:
@@ -709,28 +724,32 @@ def bridge(q):
 
 
     #simulate panda safety check
-    if steer_carla>0.25 or brake_out>0.875 or throttle_out>0.5:
-      alert = True
-      altMsg = "PandaAlert"
-      if "PandaAlert" not in alertType_list:
-        alertType_list.append("PandaAlert")
-        if(alerttime== -1):
-          alerttime = frameIdx   
-        print("=================PandaAlert============================")
-      #block the command output if any safety violations is detected
-      #ToThink More:
-      #Is simply block the output safe? 
-      #e.g., brake=0 might be unsafe if HWT<2s
-      if FI_flag!=-1: #if Driver has not engaged yet
-        steer_carla = 0
-        brake_out = 0
-        throttle_out = 0
-      # if steer_carla>0.25:
-      #   steer_carla = 0
-      # if brake_out>0.875:
-      #   brake_out = 0
-      # if throttle_out>0.5:
-      #   throttle_out = 0
+    #only check when FI as the normal operation of OP may also violate this simulated safety check 
+    if Panda_SafetyCheck_Enable == True and FI_flag > 0:
+      if abs(steer_carla - vc.steer)*(max_steer_angle * STEER_RATIO )>0.5 or brake_out>0.875 or throttle_out>0.5:
+        alert = True
+        altMsg = "PandaAlert"
+        if "PandaAlert" not in alertType_list:
+          alertType_list.append("PandaAlert")
+          if(alerttime== -1):
+            alerttime = frameIdx   
+          print("=================PandaAlert============================")
+        #block the command output if any safety violations is detected
+        #ToThink More:
+        #Is simply block the output safe? 
+        #e.g., brake=0 might be unsafe if HWT<2s
+        # if FI_flag!=-1: #if Driver has not engaged yet
+        if FI_flag>0: #if FI and Driver has not engaged yet
+          steer_carla = 0
+          brake_out = 0
+          throttle_out = 0
+        print("PandaAlert",(steer_carla - vc.steer)*(max_steer_angle * STEER_RATIO ),brake_out,throttle_out,"alerttime",alerttime)
+        # if steer_carla>0.25:
+        #   steer_carla = 0
+        # if brake_out>0.875:
+        #   brake_out = 0
+        # if throttle_out>0.5:
+        #   throttle_out = 0
       
     vc.throttle = throttle_out/0.6
     vc.steer = steer_carla
@@ -841,7 +860,7 @@ def bridge(q):
 
     #result record in files
     if is_openpilot_engaged :#and (frameIdx%20==0 or (dRel<1 and Lead_vehicle_in_vision)): #record every 20*10=0.2s
-      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,actuators_steeringAngleDeg,actuators_steer,actuators_accel, dRel,-vRel,yRel,FI_flag>0,FI_Type if FI_flag else 0 ,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y))
+      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,actuators_steeringAngleDeg,actuators_steer,actuators_accel, dRel,-vRel,yRel,FI_flag>0,FI_Type,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y))
 
     rk.keep_time()
     throttle_out_hist = vc.throttle

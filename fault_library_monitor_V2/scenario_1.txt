@@ -1,23 +1,23 @@
 title:1_max_throttle
 location//tools/sim/bridge.py//#throttle:HOOK#
-fault 1//if frameIdx>=60 and frameIdx<310://FI_flag=1//FI_Type |= 0x01
-fault 2//if frameIdx>=351 and frameIdx<601://FI_flag=1//FI_Type |= 0x01
-fault 3//if frameIdx>=539 and frameIdx<789://FI_flag=1//FI_Type |= 0x01
-fault 4//if frameIdx>=633 and frameIdx<883://FI_flag=1//FI_Type |= 0x01
-fault 5//if frameIdx>=894 and frameIdx<1144://FI_flag=1//FI_Type |= 0x01
-fault 6//if frameIdx>=1154 and frameIdx<1404://FI_flag=1//FI_Type |= 0x01
-fault 7//if frameIdx>=1321 and frameIdx<1571://FI_flag=1//FI_Type |= 0x01
-fault 8//if frameIdx>=1560 and frameIdx<1810://FI_flag=1//FI_Type |= 0x01
-fault 9//if frameIdx>=1748 and frameIdx<1998://FI_flag=1//FI_Type |= 0x01
-fault 10//if frameIdx>=1816 and frameIdx<2066://FI_flag=1//FI_Type |= 0x01
-fault 11//if frameIdx>=2155 and frameIdx<2405://FI_flag=1//FI_Type |= 0x01
-fault 12//if frameIdx>=2203 and frameIdx<2453://FI_flag=1//FI_Type |= 0x01
-fault 13//if frameIdx>=2520 and frameIdx<2770://FI_flag=1//FI_Type |= 0x01
-fault 14//if frameIdx>=2666 and frameIdx<2916://FI_flag=1//FI_Type |= 0x01
-fault 15//if frameIdx>=2941 and frameIdx<3191://FI_flag=1//FI_Type |= 0x01
-fault 16//if frameIdx>=3059 and frameIdx<3309://FI_flag=1//FI_Type |= 0x01
-fault 17//if frameIdx>=3249 and frameIdx<3499://FI_flag=1//FI_Type |= 0x01
-fault 18//if frameIdx>=3583 and frameIdx<3833://FI_flag=1//FI_Type |= 0x01
-fault 19//if frameIdx>=3720 and frameIdx<3970://FI_flag=1//FI_Type |= 0x01
-fault 20//if frameIdx>=3938 and frameIdx<4188://FI_flag=1//FI_Type |= 0x01
+fault 1//if frameIdx>=760 and frameIdx<1010://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 2//if frameIdx>=851 and frameIdx<1101://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 3//if frameIdx>=639 and frameIdx<889://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 4//if frameIdx>=733 and frameIdx<983://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 5//if frameIdx>=994 and frameIdx<1244://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 6//if frameIdx>=1254 and frameIdx<1504://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 7//if frameIdx>=1421 and frameIdx<1671://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 8//if frameIdx>=1660 and frameIdx<1910://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 9//if frameIdx>=1848 and frameIdx<2098://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 10//if frameIdx>=1916 and frameIdx<2166://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 11//if frameIdx>=2255 and frameIdx<2505://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 12//if frameIdx>=2303 and frameIdx<2553://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 13//if frameIdx>=2620 and frameIdx<2870://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 14//if frameIdx>=2766 and frameIdx<3016://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 15//if frameIdx>=3041 and frameIdx<3291://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 16//if frameIdx>=3159 and frameIdx<3409://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 17//if frameIdx>=3349 and frameIdx<3599://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 18//if frameIdx>=3683 and frameIdx<3933://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 19//if frameIdx>=3820 and frameIdx<4070://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
+fault 20//if frameIdx>=4038 and frameIdx<4288://FI_flag=1//FI_Type |= 0x01//FI_duration = 250
 Total number of fault cases: 20

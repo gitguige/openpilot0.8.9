@@ -100,17 +100,21 @@ def inject_fault(fileName):
               for InitDist in [50,70,100]:
                 for vLead in [100,200]:#20,100]:
                   for vLead2 in [100,200]:
-                    os.system('./run_bridge.sh {} {} {}'.format(vLead,InitDist,vLead2)) # run the openpilot simulator outside docker
 
+                    for reInitialize_bridge_loop in range(3): #rerun 3 times at most if bridge fails to start correctly
+                      os.system('./run_bridge.sh {} {} {}'.format(vLead,InitDist,vLead2)) # run the openpilot simulator outside docker
+
+                      fp_temp = open("tools/sim/temp.txt",'r')
+                      tempLine = fp_temp.readline()
+                      tempLine = tempLine.replace('\n','')
+
+                      if "buttonEnable" in tempLine: # skip if bridge is initialized correctly
+                        break                   
+                    
                     summFile = open('../output_files/'+title+'/summary.csv','a')
                     faultLine = '||'.join(lineSeg)
                     faultLine = faultLine.replace('\n','')
-                    summLine = '%d,%d,"%s",%d,%d,%d,' %(int(scenario_num),int(faultNum),faultLine,vLead,InitDist,vLead2)
-
-                    fp_temp = open("tools/sim/temp.txt",'r')
-                    tempLine = fp_temp.readline()
-                    tempLine = tempLine.replace('\n','')
-                
+                    summLine = '%d,%d,"%s",%d,%d,%d,' %(int(scenario_num),int(faultNum),faultLine,vLead,InitDist,vLead2)               
                     summFile.write(summLine+tempLine+'\n')
                     summFile.close()
                     fp_temp.close()

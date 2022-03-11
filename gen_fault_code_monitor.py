@@ -82,7 +82,7 @@ def write_both_to_file(code,code_STPA, title, fileLoc, faultLoc):
 #################################################################################3
 
 ##########################################################################################################
-def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code='',change_duraiton=False,change_duraitont0=False):
+def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code='',FI_H3_combine_enable = False,change_duraiton=False,change_duraitont0=False):
 		
 	title1 = ""
 	trigger = 'frameIdx' #trigger_random
@@ -91,22 +91,28 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 	#param = []
 	# N_duration =4
 	per_time_range = 2
-	time_partition = np.arange(0,40,per_time_range) 
+	time_partition = np.arange(5,40,per_time_range) #0-40 changed to 5-40, don't FI before successfully initialized and speed up
 	valuelist = []
 	valuelist.append(newvalue)
 	if newvalue2:
 		valuelist.append(newvalue2)
 
+	FI_Type_Steer = ["//FI_Type |= 0x04","//FI_Type |= 0x08"]
 	# additional_code='//brake_out=0//FI_flag=1'
 	# additional_code='//FI_flag=1'
 
 	for valueitem in valuelist:
 		#random FI
-		for tindex in range(len(time_partition)): #20
+		for tindex in [1,1]+list(range(len(time_partition))): #20
 			trigger_time = random.randint(time_partition[tindex]*100,time_partition[tindex]*100+per_time_range*100-1) #t
-			if change_duraitont0: #randm duration and start time : S21-S26
-				for duration in range(50,250,20):  #10
-					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10))
+			if change_duraitont0: #randm duration and start time, fixed value : S21-S26
+				for t_duration in range(50,250,20):  #10
+					if FI_H3_combine_enable == True:
+						additional_code_combine = FI_Type_Steer[int(round(random.random()))]
+					else:
+						additional_code_combine = ""
+					duration = random.randint(t_duration,t_duration+19)
+					additional_code1 = additional_code + "//FI_duration = {}".format(duration) + additional_code_combine
 					stop_time = trigger_time + duration
 					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
 			else: #random start time
@@ -114,25 +120,39 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 					title1 = title[:-8] + "totally"
 					if tindex%4 == 0: #5
 						for t_duration in range(50,250,50): # 4
-							duration = random.randint(t_duration,t_duration+50)
-							for t_percent in range(0,100,10): #0~100%
-								FI_percent = random.randint(t_percent,t_percent+10)
-								additional_code1 = additional_code + "//FI_duration = {}//FI_percent = {}".format(duration,FI_percent)
+							duration = random.randint(t_duration,t_duration+49)
+							for t_percent in range(1,100,10): #0~100%
+								if FI_H3_combine_enable == True:
+									additional_code_combine = FI_Type_Steer[int(round(random.random()))]
+								else:
+									additional_code_combine = ""
+								FI_percent = random.randint(t_percent,t_percent+9)
+								additional_code1 = additional_code + "//FI_duration = {}//FI_percent = {}".format(duration,FI_percent) + additional_code_combine
 								stop_time = trigger_time + duration
 								code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
-				else: # Fixed duration 2.5s: S1-S6
+				else: # randm start time, Fixed duration 2.5s, fixed value: S1-S6
+					if FI_H3_combine_enable == True:
+						additional_code_combine = FI_Type_Steer[int(round(random.random()))]
+					else:
+						additional_code_combine = ""
+					additional_code1 = additional_code + "//FI_duration = {}".format(250) + additional_code_combine
 					stop_time = trigger_time + 250 
-					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code))
+					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
 
 		#STPA FI
+		if FI_H3_combine_enable == True:
+			additional_code_combine = "//FI_Context_H3_combine_enable = 1"
+		else:
+			additional_code_combine = ""
 		for trigger_STPA in trigger_STPA_list:
 			if change_duraiton: #random duration + STPA start time
 				for duration in range(50,250,10): # 20, S11-S16
-					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10))
+					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10)) + additional_code_combine
 					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
 			else:
-				for round in range(20): #repeat for xx times: S1-S6
-					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code))
+				for loop_repeat in range(20): #repeat for xx times: S1-S6
+					additional_code1 = additional_code + additional_code_combine
+					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
 	
 	#update title is title1 is not null
 	if len(title1): 
@@ -277,12 +297,12 @@ def gen_max_throttle_steer(sceneNum):#S5
 	variable = 'FI_flag'
 	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_Type |= 0x01//FI_H3_combine_enable = 1'
+	additional_code='//FI_Type |= 0x01'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,FI_H3_combine_enable = True)
 
 def gen_max_brake_steer(sceneNum):#S6
 	title = str(sceneNum)+'_max_brake_steer'
@@ -291,12 +311,12 @@ def gen_max_brake_steer(sceneNum):#S6
 	variable = 'FI_flag'
 	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_Type |= 0x02//FI_H3_combine_enable = 1'
+	additional_code='//FI_Type |= 0x02'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):'] 
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code)
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,FI_H3_combine_enable = True)
 
 ##########################################################################################
 	
@@ -363,12 +383,12 @@ def gen_max_throttle_steer_random_duration(sceneNum):#S15
 	variable = 'FI_flag'
 	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_Type |= 0x01//FI_H3_combine_enable = 1'
+	additional_code='//FI_Type |= 0x01'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraiton=True)
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraiton=True,FI_H3_combine_enable = True)
 
 def gen_max_brake_steer_random_duration(sceneNum):#S16
 	title = str(sceneNum)+'_max_brake_steer_random_duration'
@@ -377,12 +397,12 @@ def gen_max_brake_steer_random_duration(sceneNum):#S16
 	variable = 'FI_flag'
 	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_Type |= 0x02//FI_H3_combine_enable = 1'
+	additional_code='//FI_Type |= 0x02'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):'] 
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraiton=True)
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraiton=True,FI_H3_combine_enable = True)
 
 ##########################################################################################
 def gen_max_throttle_random_t0(sceneNum):#S21
@@ -441,33 +461,33 @@ def gen_max_steer_right_random_t0(sceneNum):#S24
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraitont0=True)
 
 
-def gen_max_throttle_steer_random_t0(sceneNum):#S5
+def gen_max_throttle_steer_random_t0(sceneNum):#S25
 	title = str(sceneNum)+'_max_throttle_steer_random_t0'
 	fileLoc = 'tools/sim/bridge.py'
 	faultLoc = '#throttle:HOOK#'
 	variable = 'FI_flag'
 	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_Type |= 0x01//FI_H3_combine_enable = 1'
+	additional_code='//FI_Type |= 0x01'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraitont0=True)
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraitont0=True,FI_H3_combine_enable = True)
 
-def gen_max_brake_steer_random_t0(sceneNum):#S6
+def gen_max_brake_steer_random_t0(sceneNum):#S26
 	title = str(sceneNum)+'_max_brake_steer_random_t0'
 	fileLoc = 'tools/sim/bridge.py'
 	faultLoc = '#throttle:HOOK#'
 	variable = 'FI_flag'
 	newvalue = '1'
 	# newvalue2 = '4'
-	additional_code='//FI_Type |= 0x02//FI_H3_combine_enable = 1'
+	additional_code='//FI_Type |= 0x02'
 
 	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
 	trigger_STPA_list = ['if frameIdx>1000 and (headway_time>2.0 and RSpeed<0 and Lead_vehicle_in_vision  or Lead_vehicle_in_vision==False):'] 
 
-	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraitont0=True)
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraitont0=True,FI_H3_combine_enable = True)
 
 
 
