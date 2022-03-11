@@ -619,14 +619,15 @@ def bridge(q):
       #*********************************************#
       #condition to activate fault injection
       #throttle:HOOK#
-      if frameIdx>=3029 and frameIdx<3279:
-        FI_flag=1
-        FI_Type |= 0x05
 
-        FI_duration = 150
-        FI_percent = 20
 
-      # manual FI examples
+      # manual FI examples**************************#
+      # if frameIdx>=3029 and frameIdx<3279:
+      #   FI_flag=1
+      #   FI_Type |= 0x05
+      #   FI_duration = 150
+      #   FI_percent = 20      
+        
       # if headway_time<=2.0 and RSpeed>=0 and vLead!=0:
       #   FI_Type |= 0x01
       #   FI_flag = 1
