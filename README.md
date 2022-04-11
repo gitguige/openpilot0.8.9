@@ -1,7 +1,31 @@
 # openpilot0.8.9
-This is an experiment platform with autonomous agent openpilot0.8.9 and simulator carla 9.11 without docker setups.
+This is an experiment platform with autonomous agent openpilot0.8.9 and simulator carla 9.11 with or without docker setups.
+
+## Recommended system
+* Ubuntu 20.04
+* NVIDIA RTX 2080, RTX 3070, RTX 3080, RTX 3090 or higher
+* Python 3.8.10
 
 ## steps to setup the environment
+1. Check the recommended Nvidia driver and install it.
+'''
+sudo apt-get update
+sudo apt-get upgrade -y
+ubuntu-drivers devices
+'''
+
+2. Insatll Docker if you want to run the simulation in docker (optional).
+'''
+sudo apt install curl
+
+curl https://get.docker.com | sh \
+&& sudo systemctl start docker \
+&& sudo systemctl enable docker
+'''
+
+3. Insatall CARLA simulator following the instructions [here](http://carla.readthedocs.io/en/0.9.11/start_quickstart/)
+
+## steps to setup the openpilot environment
 1. clone the code from this repository
 ```
 git clone https://github.com/gitguige/openpilot0.8.9.git
@@ -10,9 +34,11 @@ cd openpilot0.8.9
 
 2. extract phonelibs.zip to replace ./phonelibs/
 
-3. activate the virtual environment 
+3. install dependencies to run the simulation without docker following instrucitons in *REAME_install_op-denpendency.md* (skip this step with docker setups)
 
-4. scons -c && scons -j$(nproc)
+4. activate the virtual environment 
+
+5. scons -c && scons -j$(nproc)
 
 
 ## steps to run the simulation with CARLA
