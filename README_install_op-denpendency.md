@@ -14,7 +14,7 @@ sudo apt-get update && sudo apt-get install -y --no-install-recommends autoconf 
 
 6. ```sudo rm -rf /var/lib/apt/lists/*```
 
-7. ```pip install --no-cache-dir pipenv==2020.8.13 && pipenv install --system --deploy --dev --clear && pip uninstall -y pipenv (run this inside openpilot/) (pygame 2.0.0.dev8 no longer exists. Please manually install pygame 2.0.0 instead)```
+7. ```pip install --no-cache-dir pipenv==2020.8.13 && pipenv install --system --deploy --dev --clear && pip uninstall -y pipenv ```(run this inside openpilot/) (pygame 2.0.0.dev8 no longer exists. Please manually install pygame 2.0.0 instead
 
 8. 
 ```

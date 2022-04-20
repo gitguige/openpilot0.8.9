@@ -8,20 +8,20 @@ This is an experiment platform with autonomous agent openpilot0.8.9 and simulato
 
 ## steps to setup the environment
 1. Check the recommended Nvidia driver and install it.
-'''
+```
 sudo apt-get update
 sudo apt-get upgrade -y
 ubuntu-drivers devices
-'''
+```
 
 2. Insatll Docker if you want to run the simulation in docker (optional).
-'''
+```
 sudo apt install curl
 
 curl https://get.docker.com | sh \
 && sudo systemctl start docker \
 && sudo systemctl enable docker
-'''
+```
 
 3. Insatall CARLA simulator following the instructions [here](http://carla.readthedocs.io/en/0.9.11/start_quickstart/)
 
