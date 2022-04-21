@@ -56,7 +56,7 @@ sudo chmod +x setup_autoscript.sh
 ## install CARLA
 1. Insatall CARLA simulator following the instructions [here](http://carla.readthedocs.io/en/0.9.11/start_quickstart/)
 
-2. install carla lib for docker images (skip this step if you don't use docker)
+2. install carla lib for docker setups (skip this step if you don't use docker)
 ```
 source ~/venvOPnew/bin/activate
 cd CARLA_0.9.11
