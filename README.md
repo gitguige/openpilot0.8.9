@@ -34,7 +34,15 @@ cd openpilot0.8.9
 
 2. extract phonelibs.zip to replace ./phonelibs/
 
-3. install dependencies to run the simulation without docker following instrucitons in *README_install_op-denpendency.md* (skip this step with docker setups)
+3. install dependencies to run the simulation without docker using the autoscript (skip this step with docker setups)
+
+```
+sudo chmod +x setup_autoscript.sh
+
+./setup_autoscript.sh
+```
+
+A manual instruction to install the dependencies is also included in *README_install_op-denpendency.md* 
 
 4. activate the virtual environment 
 
