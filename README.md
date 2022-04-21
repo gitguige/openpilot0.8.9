@@ -5,6 +5,7 @@ This is an experiment platform with autonomous agent openpilot0.8.9 and simulato
 * Ubuntu 20.04
 * NVIDIA RTX 2080, RTX 3070, RTX 3080, RTX 3090 or higher
 * Python 3.8.10
+* pip >= 20.0.2
 
 ## steps to setup the environment
 1. Check the recommended Nvidia driver and install it.
@@ -23,41 +24,59 @@ curl https://get.docker.com | sh \
 && sudo systemctl enable docker
 ```
 
-3. Insatall CARLA simulator following the instructions [here](http://carla.readthedocs.io/en/0.9.11/start_quickstart/)
-
 ## steps to setup the openpilot environment
 1. clone the code from this repository
 ```
 git clone https://github.com/gitguige/openpilot0.8.9.git
 cd openpilot0.8.9
 ```
+**Note:** if your files under openpilot0.8.9/models are very small (<5MB), you may need to manually download it again from the repository or install *Git LFS* to clone te repo again.
+
 
 2. extract phonelibs.zip to replace ./phonelibs/
 
-3. install dependencies to run the simulation without docker using the autoscript (skip this step with docker setups)
+3. make a virtual environment and activate it
+```
+sudo apt-get install virtualenv
+virtualenv --python=/usr/bin/python3.8 ~/venvOPnew
+source ~/venvOPnew/bin/activate
+```
+
+4. install dependencies to run the simulation without docker using the autoscript (skip this step with docker setups)
 
 ```
 sudo chmod +x setup_autoscript.sh
-
 ./setup_autoscript.sh
 ```
-
-A manual instruction to install the dependencies is also included in *README_install_op-denpendency.md* 
-
-4. activate the virtual environment 
+   A manual instruction to install the dependencies is also included in *README_install_op-denpendency.md* 
 
 5. scons -c && scons -j$(nproc)
 
 
-## steps to run the simulation with CARLA
-1. run carla 9.11 simulator
+## install CARLA
+1. Insatall CARLA simulator following the instructions [here](http://carla.readthedocs.io/en/0.9.11/start_quickstart/)
+
+2. install carla lib for docker images (skip this step if you don't use docker)
 ```
-./start_carla.sh #(with docker)
+source ~/venvOPnew/bin/activate
+cd CARLA_0.9.11
+easy_install PythonAPI/carla/dist/carla-0.9.11-py3.8-linux-x86_64.egg || true
+```
+If there is file *carla-0.9.11-py3.8-linux-x86_64.egg* does not exist, copy one from *carla-0.9.11-py3.x-linux-x86_64.egg* and rename it to *carla-0.9.11-py3.8-linux-x86_64.egg*.
+
+## steps to run the simulation with CARLA
+1. run carla 9.11 simulator with docker
+```
+cd tools/sim/ 
+sudo ./start_carla.sh #(with docker)
+```
+   or without docker: open a terminal under *cd CARLA_0.9.11* and run:
+```
+./CarlaUE4.sh
 ```
 
 2. open a new terminal and run openpilot threads
 ```
-cd tools/sim/ 
 ./launch_openpilot.sh 
 ```
 
