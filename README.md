@@ -30,7 +30,7 @@ curl https://get.docker.com | sh \
 git clone https://github.com/gitguige/openpilot0.8.9.git
 cd openpilot0.8.9
 ```
-**Note:** if your files under openpilot0.8.9/models are very small (<5MB), you may need to manually download it again from the repository or install *Git LFS* to clone te repo again.
+**Note:** if your files under openpilot0.8.9/models are very small (<5MB), you may need to manually download them again from the repository or install *Git LFS* to clone te repo again.
 
 
 2. extract phonelibs.zip to replace ./phonelibs/
@@ -62,7 +62,7 @@ source ~/venvOPnew/bin/activate
 cd CARLA_0.9.11
 easy_install PythonAPI/carla/dist/carla-0.9.11-py3.8-linux-x86_64.egg || true
 ```
-If there is file *carla-0.9.11-py3.8-linux-x86_64.egg* does not exist, copy one from *carla-0.9.11-py3.x-linux-x86_64.egg* and rename it to *carla-0.9.11-py3.8-linux-x86_64.egg*.
+If the file *carla-0.9.11-py3.8-linux-x86_64.egg* does not exist, copy one from *carla-0.9.11-py3.x-linux-x86_64.egg* and rename it to *carla-0.9.11-py3.8-linux-x86_64.egg*.
 
 ## steps to run the simulation with CARLA
 1. run carla 9.11 simulator with docker
