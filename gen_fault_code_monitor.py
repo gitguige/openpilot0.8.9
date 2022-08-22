@@ -82,7 +82,7 @@ def write_both_to_file(code,code_STPA, title, fileLoc, faultLoc):
 #################################################################################3
 
 ##########################################################################################################
-def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code='',FI_H3_combine_enable = False,change_duraiton=False,change_duraitont0=False):
+def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newvalue2=0,early_start=False,trigger_STPA_list=['if xxxxx:'],additional_code='',FI_H3_combine_enable = False,change_duraiton=False,change_duraitont0=False,RepeatTimes=1):
 		
 	title1 = ""
 	trigger = 'frameIdx' #trigger_random
@@ -101,59 +101,60 @@ def gen_code_common_fixedduration(title,fileLoc,faultLoc,variable,newvalue,newva
 	# additional_code='//brake_out=0//FI_flag=1'
 	# additional_code='//FI_flag=1'
 
-	for valueitem in valuelist:
-		#random FI
-		for tindex in [1,1]+list(range(len(time_partition))): #20
-			trigger_time = random.randint(time_partition[tindex]*100,time_partition[tindex]*100+per_time_range*100-1) #t
-			if change_duraitont0: #randm duration and start time, fixed value : S21-S26
-				for t_duration in range(50,250,20):  #10
-					if FI_H3_combine_enable == True:
-						additional_code_combine = FI_Type_Steer[int(round(random.random()))]
-					else:
-						additional_code_combine = ""
-					duration = random.randint(t_duration,t_duration+19)
-					additional_code1 = additional_code + "//FI_duration = {}".format(duration) + additional_code_combine
-					stop_time = trigger_time + duration
-					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
-			else: #random start time
-				if change_duraiton: # radndom t0* random duration * random value = 5*4 * 10 = 200: S11-S16
-					title1 = title[:-8] + "totally"
-					if tindex%4 == 0: #5
-						for t_duration in range(50,250,50): # 4
-							duration = random.randint(t_duration,t_duration+49)
-							for t_percent in range(1,100,10): #0~100%
-								if FI_H3_combine_enable == True:
-									additional_code_combine = FI_Type_Steer[int(round(random.random()))]
-								else:
-									additional_code_combine = ""
-								FI_percent = random.randint(t_percent,t_percent+9)
-								additional_code1 = additional_code + "//FI_duration = {}//FI_percent = {}".format(duration,FI_percent) + additional_code_combine
-								stop_time = trigger_time + duration
-								code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
-				else: # randm start time, Fixed duration 2.5s, fixed value: S1-S6
-					if FI_H3_combine_enable == True:
-						additional_code_combine = FI_Type_Steer[int(round(random.random()))]
-					else:
-						additional_code_combine = ""
-					additional_code1 = additional_code + "//FI_duration = {}".format(250) + additional_code_combine
-					stop_time = trigger_time + 250 
-					code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
+	for repeat in range(RepeatTimes):
+		for valueitem in valuelist:
+			#random FI
+			for tindex in [1,1]+list(range(len(time_partition))): #20
+				trigger_time = random.randint(time_partition[tindex]*100,time_partition[tindex]*100+per_time_range*100-1) #t
+				if change_duraitont0: #randm duration and start time, fixed value : S21-S26
+					for t_duration in range(50,250,20):  #10
+						if FI_H3_combine_enable == True:
+							additional_code_combine = FI_Type_Steer[int(round(random.random()))]
+						else:
+							additional_code_combine = ""
+						duration = random.randint(t_duration,t_duration+19)
+						additional_code1 = additional_code + "//FI_duration = {}".format(duration) + additional_code_combine
+						stop_time = trigger_time + duration
+						code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
+				else: #random start time
+					if change_duraiton: # radndom t0* random duration * random value = 5*4 * 10 = 200: S11-S16
+						title1 = title[:-8] + "totally"
+						if tindex%4 == 0: #5
+							for t_duration in range(50,250,50): # 4
+								duration = random.randint(t_duration,t_duration+49)
+								for t_percent in range(1,100,10): #0~100%
+									if FI_H3_combine_enable == True:
+										additional_code_combine = FI_Type_Steer[int(round(random.random()))]
+									else:
+										additional_code_combine = ""
+									FI_percent = random.randint(t_percent,t_percent+9)
+									additional_code1 = additional_code + "//FI_duration = {}//FI_percent = {}".format(duration,FI_percent) + additional_code_combine
+									stop_time = trigger_time + duration
+									code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
+					else: # randm start time, Fixed duration 2.5s, fixed value: S1-S6
+						if FI_H3_combine_enable == True:
+							additional_code_combine = FI_Type_Steer[int(round(random.random()))]
+						else:
+							additional_code_combine = ""
+						additional_code1 = additional_code + "//FI_duration = {}".format(250) + additional_code_combine
+						stop_time = trigger_time + 250 
+						code.append(gen_stuck_code('',trigger, trigger_time,stop_time, variable, valueitem,additional_code=additional_code1))
 
-		#STPA FI
-		if FI_H3_combine_enable == True:
-			additional_code_combine = "//FI_Context_H3_combine_enable = 1"
-		else:
-			additional_code_combine = ""
-		for trigger_STPA in trigger_STPA_list:
-			if change_duraiton: #random duration + STPA start time
-				for duration in range(50,250,10): # 20, S11-S16
-					additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10)) + additional_code_combine
-					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
+			#STPA FI
+			if FI_H3_combine_enable == True:
+				additional_code_combine = "//FI_Context_H3_combine_enable = 1"
 			else:
-				for loop_repeat in range(20): #repeat for xx times: S1-S6
-					additional_code1 = additional_code + additional_code_combine
-					code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
-	
+				additional_code_combine = ""
+			for trigger_STPA in trigger_STPA_list:
+				if change_duraiton: #random duration + STPA start time
+					for duration in range(50,250,10): # 20, S11-S16
+						additional_code1 = additional_code + "//FI_duration = {}".format(random.randint(duration,duration+10)) + additional_code_combine
+						code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
+				else:
+					for loop_repeat in range(20): #repeat for xx times: S1-S6
+						additional_code1 = additional_code + additional_code_combine
+						code_STPA.append(gen_stuck_code(trigger_STPA,trigger, trigger_time*100,stop_time*100, variable, valueitem,additional_code=additional_code1))
+		
 	#update title is title1 is not null
 	if len(title1): 
 		title = title1 
@@ -489,6 +490,19 @@ def gen_max_brake_steer_random_t0(sceneNum):#S26
 
 	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,change_duraitont0=True,FI_H3_combine_enable = True)
 
+def gen_model_corruption(sceneNum):#S31
+	title = str(sceneNum)+'_model_corruption'
+	fileLoc = 'tools/sim/bridge.py'
+	faultLoc = '#throttle:HOOK#'
+	variable = 'FI_flag'
+	newvalue = '1'
+	# newvalue2 = '4'
+	additional_code='//FI_Type |= 0x10'
+
+	# trigger_code_list = ['if headway_time<=2.0 and RSpeed<=0 and vLead!=0:', 'if headway_time<=2.0 and RSpeed>0 and vLead!=0:', 'if headway_time>2.0 and RSpeed>0 and vLead!=0:','if headway_time>2.0 and RSpeed<=0 and vLead!=0:']
+	trigger_STPA_list = ['if headway_time<=2.0 and RSpeed>0 and vLead!=0:']#, 'if headway_time<=2.0 and RSpeed<=0 and vLead!=0:']
+
+	gen_code_common_fixedduration(title,fileLoc,faultLoc,variable, newvalue,trigger_STPA_list=trigger_STPA_list,additional_code=additional_code,RepeatTimes=50)
 
 
 ####################################################
@@ -520,9 +534,10 @@ scenarios = {
 24 : gen_max_steer_right_random_t0,
 25 : gen_max_throttle_steer_random_t0,
 26 : gen_max_brake_steer_random_t0,
+31 : gen_model_corruption,
 }
 
 random.seed(3) 
-for sceneNum in [1,2,3,4,5,6,11,12,13,14,15,16,21,22,23,24,25,26]:
+for sceneNum in [31]:#1,2,3,4,5,6,11,12,13,14,15,16,21,22,23,24,25,26]:
 	scenarios[sceneNum](sceneNum)
 
