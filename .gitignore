@@ -1,4 +1,5 @@
 venv/
+models/
 .clang-format
 .DS_Store
 .tags
@@ -77,5 +78,11 @@ comma*.sh
 
 selfdrive/modeld/thneed/compile
 models/*.thneed
+
+tools/sim/temp.txt
+tools/sim/bridge.py.bkup
+selfdrive/manager/test.py
+supercombmodellist.npy
+test.csv
 
 *.bz2
