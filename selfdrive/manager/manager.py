@@ -183,6 +183,15 @@ def manager_thread():
     if params.get_bool("DoUninstall"):
       break
 
+    ####added by xugui on Nov 9 2022######################
+    fp = open("./process_status.txt",'r')
+    line = fp.readlines()
+    if line[0][0] =="1":
+      print("Done and exit!")
+      fp.close()
+      break
+    fp.close()
+    #######################################################
 
 def main():
   prepare_only = os.getenv("PREPAREONLY") is not None
@@ -212,6 +221,12 @@ def main():
   if Params().get_bool("DoUninstall"):
     cloudlog.warning("uninstalling")
     HARDWARE.uninstall()
+
+  #=======================================
+  fp = open("./process_status.txt",'w')
+  fp.write("2")
+  print("Reset process status and exit!")
+  fp.close()
 
 
 if __name__ == "__main__":
