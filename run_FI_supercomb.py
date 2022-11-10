@@ -30,7 +30,7 @@ def rename_modelist(modellsit):
     # np.save("./supercombmodellist_new.npy",newmodellist)
 
 if __name__ == "__main__":   
-    if os.path.isfile("./supercombmodellist.npy") != True:
+    if os.path.isfile("./supercombmodellist_new.npy") != True:
         path = "../supercomb_models/models"
         if os.path.isdir(path):
             filelist = find_files(path)
