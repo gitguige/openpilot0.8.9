@@ -676,11 +676,6 @@ def bridge(q):
       #*********************************************#
       #condition to activate fault injection
       #throttle:HOOK#
-      if frameIdx>=3820 and frameIdx<4070:
-        FI_flag=1
-        FI_Type |= 0x10
-        FI_duration = 250
-
 
 
       # manual FI examples**************************#
