@@ -49,14 +49,14 @@ vEgo = 60 #mph #set in selfdrive/controls/controlsd
 Other_vehicles_Enable = False
 reInitialize_bridge = False
 
-FI_Enable = True #True #False: run the code in fault free mode; True: add fault inejction Engine 
-Panda_SafetyCheck_Enable = True
-Driver_react_Enable = True
+FI_Enable = False #True #False: run the code in fault free mode; True: add fault inejction Engine 
+Panda_SafetyCheck_Enable = False
+Driver_react_Enable = False
 Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
 
 Strategic_value_selection = False # Only set this to True for CAWT FI
 Fixed_value_corruption = False # valid only when Strategic_value_selection=False
-
+Supercomb_Output_Log_Enable = True
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
 sm = messaging.SubMaster(['carControl','controlsState','radarState','modelV2'])
@@ -398,7 +398,56 @@ def bridge(q):
   is_autopilot_engaged =False #vehicle2
 
   fp_res = open('results/data_ADS1_{}mph_{}m_{}V0_{}V0.csv'.format(vEgo,args.init_dist,args.cruise_lead,args.cruise_lead2),'w')
-  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,actuators_steeringAngleDeg,actuators_steer,actuators_accel,d_rel(m),v_rel(m/s),c_path(m),faultinjection,faultType,alert,hazard,hazardType,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath,leftEdge,rightEdge,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y\n")
+  fp_res.write("frameIdx,distance(m),speed(m/s),acceleration(m/s2),angle_steer,gas,brake,steer_torque,actuators_steeringAngleDeg,actuators_steer,actuators_accel,d_rel(m),v_rel(m/s),c_path(m),faultinjection,faultType,alert,hazard,hazardType,alertMsg,hazardMsg,laneInvasion,yPos,Laneline1,Laneline2,Laneline3,Laneline4,leftPath,rightPath,leftEdge,rightEdge,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y")
+  if Supercomb_Output_Log_Enable:
+    for i in range(33):
+      fp_res.write(",pos.x{}".format(i))
+    for i in range(33):
+      fp_res.write(",pos.y{}".format(i))
+    for i in range(33):
+      fp_res.write(",orientation.x{}".format(i))
+    for i in range(33):
+      fp_res.write(",orientation.y{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline0.x{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline0.y{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline1.x{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline1.y{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline2.x{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline2.y{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline3.x{}".format(i))
+    for i in range(33):
+      fp_res.write(",laneline3.y{}".format(i))
+    for i in range(4):
+      fp_res.write(",laneLineProbs{}".format(i))
+
+    fp_res.write(",meta.engagedProb")
+    for i in range(32):
+      fp_res.write(",meta.desirePrediction{}".format(i))
+    for i in range(8):
+      fp_res.write(",meta.desireState{}".format(i))
+    fp_res.write(",meta.hardBrakePredicted")
+
+
+    fp_res.write(",lead.pro,lead.probTime")
+    for i in range(6):
+      fp_res.write(",lead.t{}".format(i))
+    for i in range(6):
+      fp_res.write(",lead.x{}".format(i))
+    for i in range(6):
+      fp_res.write(",lead.y{}".format(i))
+    for i in range(6):
+      fp_res.write(",lead.v{}".format(i))
+    for i in range(6):
+      fp_res.write(",lead.a{}".format(i))
+
+  fp_res.write("\n")
   speed = 0
   throttle_out_hist = 0
   FI_duration = 1000# set to be a larget value like 10 seconds so it won't be reached in the normal case with human driver engagement #250*10ms =2.5s
@@ -543,10 +592,11 @@ def bridge(q):
       else:
         Lead_vehicle_in_vision = True
 
+      #print or log supercomb predictions
       md = sm['modelV2']
-      mdsave=[0]*6472
-      mdsave = md.copy()
-      print(mdsave)
+      # mdsave=[0]*6472
+      # mdsave = md.copy()
+      # print(str(md.position.x))
 
       if len(md.position.y)>0:
         yPos = round(md.position.y[0],2) # position 
@@ -626,6 +676,11 @@ def bridge(q):
       #*********************************************#
       #condition to activate fault injection
       #throttle:HOOK#
+      if frameIdx>=3820 and frameIdx<4070:
+        FI_flag=1
+        FI_Type |= 0x10
+        FI_duration = 250
+
 
 
       # manual FI examples**************************#
@@ -868,7 +923,51 @@ def bridge(q):
 
     #result record in files
     if is_openpilot_engaged :#and (frameIdx%20==0 or (dRel<1 and Lead_vehicle_in_vision)): #record every 20*10=0.2s
-      fp_res.write("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,actuators_steeringAngleDeg,actuators_steer,actuators_accel, dRel,-vRel,yRel,FI_flag>0,FI_Type,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y))
+      linewrite = "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,actuators_steeringAngleDeg,actuators_steer,actuators_accel, dRel,-vRel,yRel,FI_flag>0,FI_Type,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y)
+      fp_res.write(linewrite)
+      if Supercomb_Output_Log_Enable and rk.frame%10 == 0: #log every 10 cycle*10ms/cycle=100ms
+        
+        # linewrite=str(md.position.x)+str(md.position.y)+str(md.position.z)+str(md.position.t)+str(md.position.xStd)+str(md.position.yStd)+str(md.position.zStd)+\
+        #           str(md.orientation.x)+str(md.orientation.y)+str(md.orientation.z)+str(md.orientation.t)+\
+        #           str(md.velocity.x)+str(md.velocity.y)+str(md.velocity.z)+str(md.velocity.t)+\
+        #           str(md.orientationRate.x)+str(md.orientationRate.y)+str(md.orientationRate.z)+str(md.orientationRate.t)+\
+        #           str(md.laneLines[0].x)+str(md.laneLines[0].y)+str(md.laneLines[0].z)+str(md.laneLines[0].t)+\
+        #           str(md.laneLines[1].x)+str(md.laneLines[1].y)+str(md.laneLines[1].z)+str(md.laneLines[1].t)+\
+        #           str(md.laneLines[2].x)+str(md.laneLines[2].y)+str(md.laneLines[2].z)+str(md.laneLines[2].t)+\
+        #           str(md.laneLines[3].x)+str(md.laneLines[3].y)+str(md.laneLines[3].z)+str(md.laneLines[3].t)+\
+        #           str(md.laneLineProbs)+\
+        #           str(md.roadEdges[0].x)+str(md.roadEdges[0].y)+str(md.roadEdges[0].z)+str(md.roadEdges[0].t)+\
+        #           str(md.roadEdges[1].x)+str(md.roadEdges[1].y)+str(md.roadEdges[1].z)+str(md.roadEdges[1].t)+\
+        #           str([md.meta.engagedProb])+\
+        #           str( md.meta.desirePrediction)+str([md.meta.brakeDisengageProbDEPRECATED] )+str([md.meta.gasDisengageProbDEPRECATED] )+str([md.meta.steerOverrideProbDEPRECATED])+\
+        #           str( md.meta.desireState )+\
+        #           str( md.meta.disengagePredictions.t )+str(md.meta.disengagePredictions.brakeDisengageProbs )+str(md.meta.disengagePredictions.gasDisengageProbs )+str(md.meta.disengagePredictions.steerOverrideProbs )+\
+        #           str( md.meta.disengagePredictions.brake3MetersPerSecondSquaredProbs )+str(md.meta.disengagePredictions.brake4MetersPerSecondSquaredProbs )+str(md.meta.disengagePredictions.brake5MetersPerSecondSquaredProbs )+\
+        #           str([md.meta.hardBrakePredicted])+\
+        #           str( md.laneLineStds )+\
+        #           str( md.roadEdgeStds )+\
+        #           str([md.modelExecutionTime] )+\
+        #           str([md.gpuExecutionTime] )+\
+        #           str([md.leadsV3[0].prob] )+str( [md.leadsV3[0].probTime] )+str(md.leadsV3[0].t )+str( md.leadsV3[0].x )+str(md.leadsV3[0].xStd)+str(md.leadsV3[0].y )+str(md.leadsV3[0].yStd)+str(md.leadsV3[0].v )+str(md.leadsV3[0].vStd)+str(md.leadsV3[0].a )+str(md.leadsV3[0].aStd)+\
+        #           str([md.leadsV3[1].prob] )+str( [md.leadsV3[1].probTime] )+str(md.leadsV3[1].t )+str( md.leadsV3[1].x )+str(md.leadsV3[1].xStd)+str(md.leadsV3[1].y )+str(md.leadsV3[1].yStd)+str(md.leadsV3[1].v )+str(md.leadsV3[1].vStd)+str(md.leadsV3[1].a )+str(md.leadsV3[1].aStd)+\
+        #           str([md.leadsV3[2].prob] )+str( [md.leadsV3[2].probTime] )+str(md.leadsV3[2].t )+str( md.leadsV3[2].x )+str(md.leadsV3[2].xStd)+str(md.leadsV3[2].y )+str(md.leadsV3[2].yStd)+str(md.leadsV3[2].v )+str(md.leadsV3[2].vStd)+str(md.leadsV3[2].a )+str(md.leadsV3[2].aStd)
+         
+        linewrite=str(md.position.x)+str(md.position.y)+\
+                  str(md.orientation.x)+str(md.orientation.y)+\
+                  str(md.laneLines[0].x)+str(md.laneLines[0].y)+\
+                  str(md.laneLines[1].x)+str(md.laneLines[1].y)+\
+                  str(md.laneLines[2].x)+str(md.laneLines[2].y)+\
+                  str(md.laneLines[3].x)+str(md.laneLines[3].y)+\
+                  str(md.laneLineProbs)+\
+                  str([md.meta.engagedProb])+\
+                  str( md.meta.desirePrediction)+\
+                  str( md.meta.desireState )+\
+                  str([md.meta.hardBrakePredicted])+\
+                  str([md.leadsV3[0].prob] )+str( [md.leadsV3[0].probTime] )+str(md.leadsV3[0].t )+str( md.leadsV3[0].x )+str(md.leadsV3[0].y )+str(md.leadsV3[0].v )+str(md.leadsV3[0].a )
+
+        linewrite=linewrite.replace('[',',').replace(']','')
+        fp_res.write(linewrite)
+      fp_res.write('\n')
 
     rk.keep_time()
     throttle_out_hist = vc.throttle
