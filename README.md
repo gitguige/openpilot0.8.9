@@ -100,7 +100,7 @@ Radnom-ST-DUR: use random FI campaign 21-26;
 
 
 ## Cite
-
+```
 @inproceedings{zhou2022strategic,
   title={Strategic safety-critical attacks against an advanced driver assistance system},
   author={Zhou, Xugui and Schmedding, Anna and Ren, Haotian and Yang, Lishan and Schowitz, Philip and Smirni, Evgenia and Alemzadeh, Homa},
@@ -109,3 +109,4 @@ Radnom-ST-DUR: use random FI campaign 21-26;
   year={2022},
   organization={IEEE}
 }
+```
