@@ -97,3 +97,15 @@ Random-ST: use random FI campaign 1-6;
 Random-DUR: use STPA FI canpaign 11-16;
 
 Radnom-ST-DUR: use random FI campaign 21-26;
+
+
+## Cite
+
+@inproceedings{zhou2022strategic,
+  title={Strategic safety-critical attacks against an advanced driver assistance system},
+  author={Zhou, Xugui and Schmedding, Anna and Ren, Haotian and Yang, Lishan and Schowitz, Philip and Smirni, Evgenia and Alemzadeh, Homa},
+  booktitle={2022 52nd Annual IEEE/IFIP International Conference on Dependable Systems and Networks (DSN)},
+  pages={79--87},
+  year={2022},
+  organization={IEEE}
+}
