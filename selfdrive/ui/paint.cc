@@ -171,6 +171,12 @@ static void ui_draw_world(UIState *s) {
     auto lead_two = (*s->sm)["modelV2"].getModelV2().getLeadsV3()[1];
     if (lead_one.getProb() > .5) {
       draw_lead(s, lead_one, s->scene.lead_vertices[0]);
+
+      //show relative distance
+      const std::string dRel_str = std::to_string((int)std::nearbyint(lead_one.getX()[0]));
+
+      nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
+      ui_draw_text(s, s->fb_w/2+130, 210, dRel_str.c_str(), 96 * 2.5, COLOR_WHITE, "sans-bold");
     }
    if (lead_two.getProb() > .5 && (std::abs(lead_one.getX()[0] - lead_two.getX()[0]) > 3.0)) {
       draw_lead(s, lead_two, s->scene.lead_vertices[1]);
@@ -201,10 +207,21 @@ static void ui_draw_vision_maxspeed(UIState *s) {
 
 static void ui_draw_vision_speed(UIState *s) {
   const float speed = std::max(0.0, (*s->sm)["carState"].getCarState().getVEgo() * (s->scene.is_metric ? 3.6 : 2.2369363));
+  // const float dRel  = std::max(0.0, (*s->sm)["radarState"].getRadarState().getLeadOne().getDRel()*1.0);
+  // const float dRel  = std::max(0.0, (*s->sm)["modelV2"].getModelV2().getLeadsV3()[0].getX()[0]*1.0 );
+  // auto lead_one = (*s->sm)["modelV2"].getModelV2().getLeadsV3()[0];
+  // const float dRel = 
+
   const std::string speed_str = std::to_string((int)std::nearbyint(speed));
+  // const std::string dRel_str = std::to_string(lead_one.getX()[0]);
+
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
-  ui_draw_text(s, s->fb_w/2, 210, speed_str.c_str(), 96 * 2.5, COLOR_WHITE, "sans-bold");
-  ui_draw_text(s, s->fb_w/2, 290, s->scene.is_metric ? "km/h" : "mph", 36 * 2.5, COLOR_WHITE_ALPHA(200), "sans-regular");
+  ui_draw_text(s, s->fb_w/2-130, 210, speed_str.c_str(), 96 * 2.5, COLOR_WHITE, "sans-bold");
+  ui_draw_text(s, s->fb_w/2-130, 290, s->scene.is_metric ? "km/h" : "mph", 36 * 2.5, COLOR_WHITE_ALPHA(200), "sans-regular");
+ 
+  // ui_draw_text(s, s->fb_w/2+130, 210, dRel_str.c_str(), 96 * 2.5, COLOR_WHITE, "sans-bold");
+  ui_draw_text(s, s->fb_w/2+130, 290, "m", 36 * 2.5, COLOR_WHITE_ALPHA(200), "sans-regular");
+
 }
 
 static void ui_draw_vision_event(UIState *s) {
