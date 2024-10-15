@@ -1,6 +1,10 @@
 # openpilot0.8.9
 This is an experiment platform with autonomous agent openpilot0.8.9 and simulator carla 9.11 with or without docker setups.
 
+HOW To CITE:
+
+X. Zhou, A. Schmedding, H. Ren, L. Yang, P. Schowitz, E. Smirni, H. Alemzadeh, “Strategic Safety-Critical Attacks against an Advanced Driver Assistance System,” in the 52nd IEEE/IFIP International Conference on Dependable Systems and Networks (DSN 2022), 2022.
+
 ## Recommended system
 * Ubuntu 20.04
 * NVIDIA RTX 2080, RTX 3070, RTX 3080, RTX 3090 or higher
