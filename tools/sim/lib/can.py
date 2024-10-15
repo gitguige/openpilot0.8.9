@@ -5,6 +5,8 @@ from opendbc.can.parser import CANParser
 from selfdrive.boardd.boardd_api_impl import can_list_to_can_capnp  # pylint: disable=no-name-in-module,import-error
 from selfdrive.car.honda.values import FINGERPRINTS, CAR
 from selfdrive.car import crc8_pedal
+from selfdrive.controls.radard import radard_thread
+import numpy as np
 
 packer = CANPacker("honda_civic_touring_2016_can_generated")
 rpacker = CANPacker("acura_ilx_2016_nidec")
@@ -27,7 +29,7 @@ def get_car_can_parser():
   return CANParser(dbc_f, signals, checks, 0)
 cp = get_car_can_parser()
 
-def can_function(pm, speed, angle, idx, cruise_button, is_engaged):
+def can_function(pm, speed, angle, idx, cruise_button, is_engaged, radar_can_message):
 
   msg = []
 
@@ -72,8 +74,16 @@ def can_function(pm, speed, angle, idx, cruise_button, is_engaged):
   # *** radar bus ***
   if idx % 5 == 0:
     msg.append(rpacker.make_can_msg("RADAR_DIAGNOSTIC", 1, {"RADAR_STATE": 0x79}, -1))
-    for i in range(16):
-      msg.append(rpacker.make_can_msg("TRACK_%d" % i, 1, {"LONG_DIST": 255.5}, -1))
+    if radar_can_message is None:
+      for i in range(16):
+        # msg.append(rpacker.make_can_msg("TRACK_%d" % i, 1, {"NEW_TRACK": True}, -1))
+        msg.append(rpacker.make_can_msg("TRACK_%d" % i, 1, {"LONG_DIST": 255.5}, -1))
+    else:
+      for track_id, radar_point in enumerate(radar_can_message):
+        # msg.append(rpacker.make_can_msg("TRACK_%d" % track_id, 1, {"NEW_TRACK": True}, -1))
+        msg.append(rpacker.make_can_msg("TRACK_%d" % track_id, 1, {"LONG_DIST": radar_point[0]}, -1))
+        msg.append(rpacker.make_can_msg("TRACK_%d" % track_id, 1, {"LAT_DIST": radar_point[1]}, -1))
+        msg.append(rpacker.make_can_msg("TRACK_%d" % track_id, 1, {"REL_SPEED": radar_point[2]}, -1))
 
   # fill in the rest for fingerprint
   done = set([x[0] for x in msg])

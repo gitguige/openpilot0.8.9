@@ -2,12 +2,13 @@
 import argparse
 from operator import truediv
 import carla # pylint: disable=import-error
+
 import math
 import numpy as np
 import time
 import threading
 from cereal import log
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Value, Array
 from typing import Any
 
 import cereal.messaging as messaging
@@ -21,6 +22,7 @@ from selfdrive.test.helpers import set_params_enabled
 import sys,os,signal
 # from sys import argv
 
+from sklearn.cluster import DBSCAN
 
 parser = argparse.ArgumentParser(description='Bridge between CARLA and openpilot.')
 parser.add_argument('--joystick', action='store_true')
@@ -33,6 +35,7 @@ parser.add_argument('--cruise_lead', type=int, default=80) #(1 + 80%)V0 = 1.8V0
 parser.add_argument('--cruise_lead2', type=int, default=80) #(1 + 80%)V0 = 1.8V0 #change speed in the middle
 parser.add_argument('--init_dist', type=int, default=100) #meters; initial relative distance between vehicle and vehicle2
 
+parser.add_argument('--radar_eps', type=float, default=0.2)
 # parser.add_argument('--faultinfo', type=str, default='')
 # parser.add_argument('--scenarioNum', type=int, default=1)
 # parser.add_argument('--faultNum', type=int, default=1)
@@ -52,11 +55,12 @@ reInitialize_bridge = False
 FI_Enable = False #True #False: run the code in fault free mode; True: add fault inejction Engine 
 Panda_SafetyCheck_Enable = False
 Driver_react_Enable = False
+AEB_React_Enable = False
 Mode_FI_duration = 1 # 0: FI lasts 2.5s after t_f; 1: FI whenever context is True between [t_f,t_f+2.5s]
 
 Strategic_value_selection = False # Only set this to True for CAWT FI
 Fixed_value_corruption = False # valid only when Strategic_value_selection=False
-Supercomb_Output_Log_Enable = True
+Supercomb_Output_Log_Enable = False
 
 pm = messaging.PubMaster(['roadCameraState', 'sensorEvents', 'can', "gpsLocationExternal"])
 sm = messaging.SubMaster(['carControl','controlsState','radarState','modelV2'])
@@ -99,6 +103,10 @@ def driver_brake_simulator(t_brake):
   driver_brake_out = clip(driver_brake_tmp/(1+driver_brake_tmp),0,1) #1
   return driver_brake_out
 
+##############
+FI_flag = 0 
+FI_Type = 0
+frameIdx = 0
 frame_id = 0
 def cam_callback(image):
   global frame_id
@@ -172,21 +180,215 @@ def gps_callback(gps, vehicle_state):
 
   pm.send('gpsLocationExternal', dat)
 
-# Create a radar's callback that just prints the data 
-# def radar_callback(weak_radar, sensor_data):
-def radar_callback( sensor_data):
-  # # self = weak_radar()
-  # # if not self:
-  # #   return
-  # print("==============",len(sensor_data),'==============')
-  # for detection in sensor_data:
-  #   print(detection)
-  #   # print('depth: ' + str(detection.depth)) # meters 
-  #   # print('azimuth: ' + str(detection.azimuth)) # rad 
-  #   # print('altitude: ' + str(detection.altitude)) # rad 
-  #   # print('velocity: ' + str(detection.velocity)) # m/s
+# # Create a radar's callback that just prints the data 
+# # def radar_callback(weak_radar, sensor_data):
+# def radar_callback( sensor_data):
+#   # # self = weak_radar()
+#   # # if not self:
+#   # #   return
+#   # print("==============",len(sensor_data),'==============')
+#   # for detection in sensor_data:
+#   #   print(detection)
+#   #   # print('depth: ' + str(detection.depth)) # meters 
+#   #   # print('azimuth: ' + str(detection.azimuth)) # rad 
+#   #   # print('altitude: ' + str(detection.altitude)) # rad 
+#   #   # print('velocity: ' + str(detection.velocity)) # m/s
 
-  ret = 0#sensor_data[0]
+#   ret = 0#sensor_data[0]
+
+# resource: selfdrive/controls/radard.py search publish radarState
+radar_points = np.empty((0, 4), float)
+def radar_callback(radar_data,world,Radar_Point_Array,N_radar_points):
+  global radar_points,frameIdx
+  if N_radar_points.value == 0:
+    radar_points = np.empty((0, 4), float) #reset radar_points
+
+  velocity_range = 7.5 # m/s
+  current_rot = radar_data.transform.rotation
+  for detect in radar_data:
+    detect_array = np.array([[detect.altitude, detect.azimuth, detect.depth, detect.velocity]])
+    radar_points = np.vstack([radar_points, detect_array])
+
+  if frameIdx>999:
+    n_points = min(radar_points.shape[0],64) #only process 64 points
+    Radar_Point_Array[:n_points*4] = radar_points.flatten()[:n_points*4]
+    N_radar_points.value = n_points
+    # print(frameIdx,"=========len======",len(radar_points.flatten()),n_points*4,N_radar_points.value)
+
+    # azi = math.degrees(detect.azimuth)
+    # alt = math.degrees(detect.altitude)
+    # # The 0.25 adjusts a bit the distance so the dots can
+    # # be properly seen
+    # fw_vec = carla.Vector3D(x=detect.depth - 0.25)
+    # carla.Transform(
+    #     carla.Location(),
+    #     carla.Rotation(
+    #         pitch=current_rot.pitch + alt,
+    #         yaw=current_rot.yaw + azi,
+    #         roll=current_rot.roll)).transform(fw_vec)
+
+    # def clamp(min_v, max_v, value):
+    #     return max(min_v, min(value, max_v))
+
+    # norm_velocity = detect.velocity / velocity_range # range [-1, 1]
+    # r = int(clamp(0.0, 1.0, 1.0 - norm_velocity) * 255.0)
+    # g = int(clamp(0.0, 1.0, 1.0 - abs(norm_velocity)) * 255.0)
+    # b = int(abs(clamp(- 1.0, 0.0, - 1.0 - norm_velocity)) * 255.0)
+    # world.debug.draw_point(
+    #     radar_data.transform.location + fw_vec,
+    #     size=0.075,
+    #     life_time=0.06,
+    #     persistent_lines=False,
+    #     color=carla.Color(r, g, b))
+
+detect_fcw = False
+fcw_alert = False 
+fcw_start_dis = -1
+fcw_start_rv = -1
+fcw_start_egov = -1
+
+aeb_alert = False
+aeb_brake = 0 
+aeb_start_dis = -1
+aeb_start_rv = -1
+aeb_start_egov = -1
+
+vehicle2_id = None
+dRel = 0
+vRel = 0 
+
+obstacle_count = 0 
+obstacle_drel = 0
+obstacle_vrel = 0
+obstacle_index = 0
+def obstacle_callback(detection):
+  global vehicle2_id, dRel, vRel
+  global obstacle_count,obstacle_drel,obstacle_vrel,obstacle_index
+  other_actor = detection.other_actor
+  no_other = (False, carla.Vector3D(x = 0, y = 0, z = 0))
+  if other_actor == None: # check to see if the other factor is not a car
+    no_other[0] = True
+  
+  if other_actor.id != vehicle2_id:
+    return detection #return when the other factor is not a car 
+  
+  # print("-----------Obstacle Callback-----------")
+  # print(detection)  
+
+  car = detection.actor.parent
+  obstacle_drel =  detection.distance
+
+  distance_to_obstacle = dRel#obstacle_drel
+  # distance_to_obstacle = 0.5*(dRel+ obstacle_drel)
+  # print("Checking for AEB")
+  # print(car.get_velocity())
+  # print(other_actor.get_velocity())
+
+  ego_vel = car.get_velocity()
+  other_vel = other_actor.get_velocity() if not no_other[0] else no_other[1]
+  relative_vel = carla.Vector3D(x = ego_vel.x - other_vel.x, y = ego_vel.y - other_vel.y, z = ego_vel.z - other_vel.z)
+  # print(relative_vel)
+
+  # new control logic: use TTC and state transition 
+  proc_brake = False
+  ego_vel_mag = math.sqrt(ego_vel.x**2 + ego_vel.y**2 + ego_vel.z**2)
+  other_vel_mag = math.sqrt(other_vel.x**2 + other_vel.y**2 + other_vel.z**2)
+  obstacle_vrel = math.sqrt(relative_vel.x**2 + relative_vel.y**2 + relative_vel.z**2)
+
+  if ego_vel_mag<other_vel_mag:
+    obstacle_vrel = -1*obstacle_vrel
+  relative_vel_mag = obstacle_vrel
+
+  ##fuse with vision data
+  relative_vel_mag = -vRel
+  
+  
+  if relative_vel_mag > 0:
+    ttc = distance_to_obstacle / relative_vel_mag 
+  else:
+    ttc = 10000  
+  
+  
+  # fcw time 
+  treact = 2.5 
+  tfcw = treact + ego_vel_mag / 5
+
+  # print("******************** ttc is : ", ttc)
+  # print("******************** the tfcw is :", tfcw)
+
+  # 1st partial brake phase: decelerate at 4 m/s^2
+  tpb1 = ego_vel_mag / 3.8
+  # 2nd partial brake phase: decelerate at 6 m/s^2
+  tpb2 = ego_vel_mag / 5.8
+  # full brake phase: decelerate at 10 m/s^2
+  tfb = ego_vel_mag / 9.8
+
+  global aeb_alert, aeb_brake, fcw_alert
+  if ttc > 0 and ttc < tfb:
+
+    proc_brake = True
+    # print("Activating full brake")
+    # car.apply_control(carla.VehicleControl(brake=1))
+    aeb_alert = True
+    aeb_brake = 1
+    # print("Disabling OpenPilot")
+
+  elif ttc > 0 and ttc < tpb2:
+    proc_brake = True
+    # print("Activating second-phase partial brake")
+    # car.apply_control(carla.VehicleControl(brake=0.95))
+    aeb_alert = True
+    aeb_brake =0.95
+    # print("Disabling OpenPilot")
+
+  elif ttc > 0 and ttc < tpb1:
+    proc_brake = True
+    # print("Activating first-phase partial brake")
+    # car.apply_control(carla.VehicleControl(brake=0.9))
+    aeb_alert = True
+    aeb_brake = 0.9
+    # print("Disabling OpenPilot")
+
+  if ttc > tpb1 and ttc < tfcw:
+    obstacle_count += 1
+    if obstacle_count > 5:
+      fcw_alert = True
+      # print("fcw alert......",dRel,vRel)
+  else:
+    obstacle_count = 0
+    fcw_alert = False
+
+  global aeb_start_dis, aeb_start_rv, aeb_start_egov
+  if aeb_alert:
+    if aeb_start_dis ==-1:
+      aeb_start_dis = distance_to_obstacle
+      print("********************* the aeb start distance is:", aeb_start_dis)
+
+    if aeb_start_rv == -1:
+      aeb_start_rv = relative_vel_mag
+      print("********************* the aeb start relative velocity is:", aeb_start_rv)
+
+    if aeb_start_egov == -1:
+      aeb_start_egov = ego_vel_mag
+      print("********************* the aeb start ego velocity is:", aeb_start_egov)
+
+  global fcw_start_dis, fcw_start_rv, fcw_start_egov
+  if fcw_alert:
+    if fcw_start_dis == -1:
+      fcw_start_dis = distance_to_obstacle
+      print("*********************== the fcw start distance is:", fcw_start_dis, dRel)
+
+    if fcw_start_rv == -1:
+      fcw_start_rv = relative_vel_mag
+      print("********************* the fcw start relative velocity is:", fcw_start_rv, vRel)
+
+    if fcw_start_egov == -1:
+      fcw_start_egov = ego_vel_mag
+      print("********************* the fcw start ego velocity is:", fcw_start_egov)
+
+  obstacle_index += 1
+  # print("---------------------------------------")
+  return detection
 
 collision_hist = []
 def collision_callback(col_event):
@@ -218,15 +420,78 @@ def fake_driver_monitoring(exit_event: threading.Event):
 
     time.sleep(DT_DMON)
 
-def can_function_runner(vs: VehicleState, exit_event: threading.Event):
-  i = 0
-  while not exit_event.is_set():
-    can_function(pm, vs.speed, vs.angle, i, vs.cruise_button, vs.is_engaged)
+RADAR_MODE = 0 #0: Diaable; 1: actual radar sensor; 2: obstacle sensor
+
+def parse_radar(Radar_Point_Array,N_radar_points):
+  i = 1
+  while EXIT_SIGNAL==False:
+    start_time = time.time()
+    
+    if i % 5 == 0 and N_radar_points.value > 0 :
+      # print("N_radar_points=",N_radar_points.value,i % 5 != 0,N_radar_points.value == 0)
+      radar_points = np.copy(Radar_Point_Array[:N_radar_points.value*4]).reshape(-1,4)
+      # process radar points==========
+      radar_points_clustering = DBSCAN(eps=args.radar_eps, min_samples=5).fit(radar_points / [math.radians(10), math.radians(17.5), 100.0, 35.0]) # normalize data points
+      radar_points_clustering_centroids = np.zeros((16, 4), float)
+      radar_points_clustering_label_counts = np.zeros((16, 1), int)
+      # sum all tracks===========
+      for idx, track_id in enumerate(radar_points_clustering.labels_):
+        if track_id != -1 and track_id < 16:
+          radar_points_clustering_centroids[track_id, :] += radar_points[idx, :]
+          radar_points_clustering_label_counts[track_id] += 1
+      # average all tracks to get centroids============
+      for idx, radar_point in enumerate(radar_points_clustering_centroids):
+        if radar_points_clustering_label_counts[idx] != 0:
+          radar_points_clustering_centroids[idx] = radar_point / radar_points_clustering_label_counts[idx]
+      # calculate longitudinal_dist, lateral_dist, and relative_velocity==============
+      radar_can_message = np.zeros((16, 3), float)
+      for idx, radar_point_centroid in enumerate(radar_points_clustering_centroids):
+        if radar_points_clustering_label_counts[idx] == 0:
+        # if radar_points_clustering_label_counts[idx] == 0 or radar_point_centroid<0.5:
+          radar_can_message[idx, :] = np.array([[255.5, 0.0, 0.0]])
+        else:
+          radar_can_message[idx, 0] = math.cos(radar_point_centroid[0]) * math.cos(radar_point_centroid[1]) * radar_point_centroid[2] # radar_longitudinal_distance_offset # longitudinal distance 
+          radar_can_message[idx, 1] = math.cos(radar_point_centroid[0]) * math.sin(radar_point_centroid[1]) * radar_point_centroid[2] # lateral distance
+          radar_can_message[idx, 2] = radar_point_centroid[3] # relative velocity
+      # print(radar_points,radar_points_clustering,radar_points_clustering_centroids,radar_points_clustering_label_counts)
+      # print(f"DBSCAN spend time = {time.time()-start_time}~~~~~")
+      N_radar_points.value = 0
+      Radar_Point_Array[256:304] = radar_can_message.flatten()
+      Radar_Point_Array[-1] = 1
+    # print(f"parse spend time = {time.time()-start_time}~~~~~")
     time.sleep(0.01)
     i+=1
 
 
-def bridge(q):
+def can_function_runner(vs: VehicleState, exit_event: threading.Event, Radar_Point_Array):
+  # global radar_points
+  global frameIdx,obstacle_index,obstacle_drel,obstacle_vrel,dRel,vRel
+  ob_process = 0
+  i = 1
+  while not exit_event.is_set():
+
+    # if i % 5 != 0 or obstacle_index == ob_process:
+    #   can_function(pm, vs.speed, vs.angle, i, vs.cruise_button, vs.is_engaged, None)
+    # else:
+    #   radar_can_message = np.zeros((16, 3), float)
+    #   radar_can_message[0, 0]  = obstacle_drel #feed radar interface with the obstacle predictions
+    #   radar_can_message[0, 2]  = obstacle_vrel
+    #   can_function(pm, vs.speed, vs.angle, i, vs.cruise_button, vs.is_engaged, radar_can_message)
+    #   ob_process = obstacle_index
+      
+    if i % 5 != 0 or Radar_Point_Array[-1] == 0 or frameIdx < 1000:
+      can_function(pm, vs.speed, vs.angle, i, vs.cruise_button, vs.is_engaged, None)
+    else:
+      radar_can_message = np.copy(Radar_Point_Array[256:304]).reshape(16,3) #112-64=48=16*3
+      # print(dRel,vRel,"=========can meassage",radar_can_message[:2,:])
+      can_function(pm, vs.speed, vs.angle, i, vs.cruise_button, vs.is_engaged, radar_can_message)
+      # radar_points = np.empty((0, 4), float)
+      Radar_Point_Array[-1] = 0
+    time.sleep(0.01)
+    i+=1
+
+
+def bridge(q, Radar_Point_Array,N_radar_points):
 
   # setup CARLA
   client = carla.Client("127.0.0.1", 2000)
@@ -248,6 +513,9 @@ def bridge(q):
 
   world_map = world.get_map()
 
+  #change weather, added on May 23 2023
+  # world.set_weather(carla.WeatherParameters.MidRainyNoon)
+
   vehicle_bp = blueprint_library.filter('vehicle.tesla.*')[1]
   spawn_points = world_map.get_spawn_points()
   assert len(spawn_points) > args.num_selected_spawn_point, \
@@ -266,6 +534,16 @@ def bridge(q):
   spawn_point2.location.y   += args.init_dist#20
   vehicle2 = world.spawn_actor(vehicle_bp, spawn_point2)
   # vehicle2.set_autopilot(True)
+
+  # spawn_point3 = carla.Transform(spawn_point.location,spawn_point.rotation)
+  # spawn_point3.location.y   += 115
+  # # spawn_point3.location.y   -= 35
+  # spawn_point3.location.x   += 7
+  # # spawn_point3.rotation.yaw += 25
+  # vehicle2 = world.spawn_actor(vehicle_bp, spawn_point3) #following vehicle
+
+  global vehicle2_id
+  vehicle2_id = vehicle2.id
 
   #==========3rd vehilce===========
   if Other_vehicles_Enable:
@@ -327,23 +605,27 @@ def bridge(q):
   gps = world.spawn_actor(gps_bp, transform, attach_to=vehicle)
   gps.listen(lambda gps: gps_callback(gps, vehicle_state))
 
+  # add radar (reference: https://carla.readthedocs.io/en/latest/tuto_G_retrieve_data/#radar-sensor)
+  # Get radar blueprint 
+  radar_bp = blueprint_library.find('sensor.other.radar')
+  radar_bp.set_attribute('horizontal_fov', str(15))
+  radar_bp.set_attribute('vertical_fov', str(15))
+  radar_bp.set_attribute('range', str(256))
+  radar_location = carla.Location(x=vehicle.bounding_box.extent.x, z=1.0)
+  radar_rotation = carla.Rotation()
+  radar_transform = carla.Transform(radar_location, radar_rotation)
+  radar = world.spawn_actor(radar_bp, radar_transform, attach_to=vehicle)
+  radar.listen(lambda radar_data: radar_callback(radar_data,world,Radar_Point_Array,N_radar_points))
+
+  #AEBS
+  obstacledet_bp = blueprint_library.find('sensor.other.obstacle')
+  obstacledet_bp.set_attribute('distance', '40') # Distance for the Obstacle sensor to see objects within this range
+  obstacledet_bp.set_attribute('hit_radius', '1') # Radius of the cylinder passed forward from the car to detect
+  obstacledet_bp.set_attribute('debug_linetrace', 'True')
+
+  obstacledet = world.spawn_actor(obstacledet_bp, transform, attach_to=vehicle, attachment_type=carla.AttachmentType.Rigid)
+  obstacledet.listen(lambda sensor_data: obstacle_callback(sensor_data))
   
-  # # Get radar blueprint 
-  # radar_bp = blueprint_library.filter('sensor.other.radar')[0]
-
-  # # Set Radar attributes, by default are: 
-  # radar_bp.set_attribute('horizontal_fov', '30') # degrees 
-  # radar_bp.set_attribute('vertical_fov', '30') # degrees 
-  # # radar_bp.set_attribute('points_per_second', '1500')
-  # radar_bp.set_attribute('range', '100') # meters 
-
-  # # Spawn the radar 
-  # radar = world.spawn_actor(radar_bp, transform, attach_to=vehicle, attachment_type=carla.AttachmentType.Rigid)
-  # # weak_radar = weakref.ref(radar)
-  # # radar.listen(lambda sensor_data: radar_callback(weak_radar, sensor_data))
-  # radar.listen(lambda sensor_data: radar_callback(sensor_data))
-  # # radar.listen(radar_callback)
-
   #collision sensor detector
   colsensor_bp = blueprint_library.find("sensor.other.collision")
   colsensor = world.spawn_actor(colsensor_bp, transform, attach_to=vehicle)
@@ -354,14 +636,15 @@ def bridge(q):
   laneInvasion = world.spawn_actor(laneInvasion_bp, transform, attach_to=vehicle)
   laneInvasion.listen(lambda LaneInvasionEvent: laneInvasion_callback(LaneInvasionEvent))
 
-
-
   # launch fake car threads
   threads = []
   exit_event = threading.Event()
   threads.append(threading.Thread(target=panda_state_function, args=(exit_event,)))
   threads.append(threading.Thread(target=fake_driver_monitoring, args=(exit_event,)))
-  threads.append(threading.Thread(target=can_function_runner, args=(vehicle_state, exit_event,)))
+  threads.append(threading.Thread(target=can_function_runner, args=(vehicle_state, exit_event,Radar_Point_Array,)))
+
+  # threads.append(threading.Thread(target=parse_radar, args=(exit_event,)))
+
   for t in threads:
     t.start()
 
@@ -474,10 +757,29 @@ def bridge(q):
   alertText1_list = []
   alertText2_list = []
 
-  FI_flag = 0 
-  FI_Type = 0
-  frameIdx = 0
+
   FI_Context_H3_combine_enable = 0
+  global EXIT_SIGNAL
+  global FI_Type, FI_flag, frameIdx
+  global vRel,dRel
+  global aeb_alert,fcw_alert
+
+  fp_radar = open("results/radarlog.csv","w")
+  fp_radar.write("frameIdx,dRel_truth,dRel,vRel")
+  for i in range(16):
+    fp_radar.write(",rx{}".format(i))
+    fp_radar.write(",ry{}".format(i))
+    fp_radar.write(",rv{}".format(i))  
+  for i in range(64):
+    fp_radar.write(",al{}".format(i))
+    fp_radar.write(",az{}".format(i))
+    fp_radar.write(",dp{}".format(i))
+    fp_radar.write(",ve{}".format(i))
+  fp_radar.write('\n')
+
+  fp_vrel = open("results/test_vrel.csv",'w')
+  fp_vrel.write("speed,speed2,vreltruth,vrel\n")
+
   while frameIdx<5000:
 
     altMsg = ""
@@ -506,10 +808,8 @@ def bridge(q):
     throttle_op = steer_op = brake_op = 0
     throttle_manual = steer_manual = brake_manual = 0.0
     actuators_steeringAngleDeg = actuators_steer = actuators_accel = 0
-
-    dRel = 0
+    
     yRel = 2.5
-    vRel = 0
     vLead = 0
     yPos = 0
     ylaneLines = []
@@ -735,7 +1035,15 @@ def bridge(q):
           print("Driver:",frameIdx,driver_alerted_time,frameIdx-driver_alerted_time)
 
           # print("FI_Type={},throttle_out={},brake_out={},steer_carla={}".format(FI_Type,throttle_out,brake_out,steer_carla))
-          
+
+      #AEB
+      if AEB_React_Enable == True:
+        if aeb_alert:
+          throttle_out = 0
+          FI_flag = 0
+          brake_out = aeb_brake
+          print("AEB braking.")
+
       #execute fault injection
       if FI_flag > 0:
         if fault_duration < FI_duration: #time budget
@@ -848,7 +1156,7 @@ def bridge(q):
         break
 
     #------------------------------------------------------
-    if driver_alerted_time == -1 and fault_duration>0 and (alert or throttle_out>= 0.6 or speed>1.1*vEgo*0.4407 or brake_out>0.95): #max gas//max brake//exceed speed limit
+    if driver_alerted_time == -1 and fault_duration>0 and (fcw_alert or alert or throttle_out>= 0.6 or speed>1.1*vEgo*0.4407 or brake_out>0.95): # or abs(patch.mean()>=0.15) #max gas//max brake//exceed speed limit
       driver_alerted_time =frameIdx #driver is alerted
 
     #Accident: collision 
@@ -916,6 +1224,20 @@ def bridge(q):
       print("Frame ID:",frameIdx,"frame: ", rk.frame,"engaged:", is_openpilot_engaged, "; throttle: ", round(vc.throttle, 3), "acc:" ,round(acceleration,2),round(throttle_out_hist/acceleration,2),"; steer(c/deg): ", round(vc.steer, 3), round(steer_out, 3), "; brake: ", round(vc.brake, 3),\
             "speed:",round(speed,2),'vLead:',round(vLead,2),"vRel",round(-vRel,2),"drel:",round(dRel,2),round(yRel,2),'Lanelines',yPos,ylaneLines,yroadEdges,"FI:",FI_flag,"Hazard:",hazard)
 
+    #log radar data to file=====
+    # calucalate distance headway
+    sv_front_bumper_location = vehicle.get_location()
+    lv_rear_bumper_location = vehicle2.get_location()
+    dRel_truth = math.sqrt((sv_front_bumper_location.x - lv_rear_bumper_location.x)**2 + (sv_front_bumper_location.y - lv_rear_bumper_location.y)**2 + (sv_front_bumper_location.z - lv_rear_bumper_location.z)**2)
+    if N_radar_points.value>0:
+      fp_radar.write(f"{frameIdx},{dRel_truth},{dRel},{vRel}")
+      for i in range(48):
+        fp_radar.write(",{}".format(Radar_Point_Array[256+i]))
+      for i in range(N_radar_points.value*4):
+        fp_radar.write(",{}".format(Radar_Point_Array[i]))
+      fp_radar.write('\n')
+
+
     #result record in files
     if is_openpilot_engaged :#and (frameIdx%20==0 or (dRel<1 and Lead_vehicle_in_vision)): #record every 20*10=0.2s
       linewrite = "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}".format(frameIdx,0,speed,acceleration,steer_out,vc.throttle,vc.brake,vc.steer,actuators_steeringAngleDeg,actuators_steer,actuators_accel, dRel,-vRel,yRel,FI_flag>0,FI_Type,alert,hazard,hazType,altMsg,hazMsg, laneInvasion_Flag,yPos,ylaneLines,pathleft,pathright,roadEdgeLeft,roadEdgeRight,vel_pos.x,vel_pos.y,vel2_pos.x,vel2_pos.y,vel4_pos.x,vel4_pos.y)
@@ -946,20 +1268,21 @@ def bridge(q):
         #           str([md.leadsV3[0].prob] )+str( [md.leadsV3[0].probTime] )+str(md.leadsV3[0].t )+str( md.leadsV3[0].x )+str(md.leadsV3[0].xStd)+str(md.leadsV3[0].y )+str(md.leadsV3[0].yStd)+str(md.leadsV3[0].v )+str(md.leadsV3[0].vStd)+str(md.leadsV3[0].a )+str(md.leadsV3[0].aStd)+\
         #           str([md.leadsV3[1].prob] )+str( [md.leadsV3[1].probTime] )+str(md.leadsV3[1].t )+str( md.leadsV3[1].x )+str(md.leadsV3[1].xStd)+str(md.leadsV3[1].y )+str(md.leadsV3[1].yStd)+str(md.leadsV3[1].v )+str(md.leadsV3[1].vStd)+str(md.leadsV3[1].a )+str(md.leadsV3[1].aStd)+\
         #           str([md.leadsV3[2].prob] )+str( [md.leadsV3[2].probTime] )+str(md.leadsV3[2].t )+str( md.leadsV3[2].x )+str(md.leadsV3[2].xStd)+str(md.leadsV3[2].y )+str(md.leadsV3[2].yStd)+str(md.leadsV3[2].v )+str(md.leadsV3[2].vStd)+str(md.leadsV3[2].a )+str(md.leadsV3[2].aStd)
-         
-        linewrite=str(md.position.x)+str(md.position.y)+\
-                  str(md.orientation.x)+str(md.orientation.y)+\
-                  str(md.laneLines[0].x)+str(md.laneLines[0].y)+\
-                  str(md.laneLines[1].x)+str(md.laneLines[1].y)+\
-                  str(md.laneLines[2].x)+str(md.laneLines[2].y)+\
-                  str(md.laneLines[3].x)+str(md.laneLines[3].y)+\
-                  str(md.laneLineProbs)+\
-                  str([md.meta.engagedProb])+\
-                  str( md.meta.desirePrediction)+\
-                  str( md.meta.desireState )+\
-                  str([md.meta.hardBrakePredicted])+\
-                  str([md.leadsV3[0].prob] )+str( [md.leadsV3[0].probTime] )+str(md.leadsV3[0].t )+str( md.leadsV3[0].x )+str(md.leadsV3[0].y )+str(md.leadsV3[0].v )+str(md.leadsV3[0].a )
-
+        try: 
+          linewrite=str(md.position.x)+str(md.position.y)+\
+                    str(md.orientation.x)+str(md.orientation.y)+\
+                    str(md.laneLines[0].x)+str(md.laneLines[0].y)+\
+                    str(md.laneLines[1].x)+str(md.laneLines[1].y)+\
+                    str(md.laneLines[2].x)+str(md.laneLines[2].y)+\
+                    str(md.laneLines[3].x)+str(md.laneLines[3].y)+\
+                    str(md.laneLineProbs)+\
+                    str([md.meta.engagedProb])+\
+                    str( md.meta.desirePrediction)+\
+                    str( md.meta.desireState )+\
+                    str([md.meta.hardBrakePredicted])+\
+                    str([md.leadsV3[0].prob] )+str( [md.leadsV3[0].probTime] )+str(md.leadsV3[0].t )+str( md.leadsV3[0].x )+str(md.leadsV3[0].y )+str(md.leadsV3[0].v )+str(md.leadsV3[0].a )
+        except:
+          break
         linewrite=linewrite.replace('[',',').replace(']','')
         fp_res.write(linewrite)
       fp_res.write('\n')
@@ -986,6 +1309,8 @@ def bridge(q):
   gps.destroy()
   imu.destroy()
   camera.destroy()
+  radar.destroy()
+  obstacledet.destroy()
   vehicle.destroy()
   colsensor.destroy()
 
@@ -1000,15 +1325,20 @@ def bridge(q):
     vehicle5.destroy()
 
   fp_res.close()
+  fp_radar.close()
+  fp_vrel.close()
+
+  # print(f"overhead time ={np.mean(overhead_time[0])}")
   # os.killpg(os.getpgid(os.getpid()), signal.SIGINT) #kill the remaining threads
+  EXIT_SIGNAL = True
   sys.exit(0)
   # exit()
 
 
-def bridge_keep_alive(q: Any):
+def bridge_keep_alive(q: Any, Radar_Point_Array,N_radar_points):
   while 1:
     try:
-      bridge(q)
+      bridge(q, Radar_Point_Array,N_radar_points)
       break
     except RuntimeError:
       print("Restarting bridge...")
@@ -1016,7 +1346,7 @@ def bridge_keep_alive(q: Any):
 if __name__ == "__main__":
   # print(os.getcwd())
   # os.system('rm ./results/*')
-  
+  EXIT_SIGNAL = False
   # make sure params are in a good state
   set_params_enabled()
 
@@ -1047,7 +1377,12 @@ if __name__ == "__main__":
   # p_keyboard = Process(target=keyboard_poll_thread, args=(q,), daemon=True)
   # p_keyboard.start()
 
-  bridge_keep_alive(q)
+  Radar_Point_Array = Array('d',np.array([0]*(64*4+16*3+1)).astype('float64')) # [0:64*4] radar points, [256:304]: can message 16*3, [304]: can message ready
+  N_radar_points = Value('i',0)
+  p_parse_radar = Process(target=parse_radar, args=(Radar_Point_Array,N_radar_points),daemon=True)
+  p_parse_radar.start()
+
+  bridge_keep_alive(q, Radar_Point_Array,N_radar_points)
 
   # if reInitialize_bridge: #if fail to intialize, do it again
   #   q: Any = Queue()
@@ -1057,4 +1392,5 @@ if __name__ == "__main__":
   # p_keyboard.join()
 
 
+  p_parse_radar.join()
 

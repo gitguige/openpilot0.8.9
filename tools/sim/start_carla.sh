@@ -16,7 +16,7 @@ if ! $(apt list --installed | grep -q nvidia-container-toolkit); then
 fi
 
 # docker pull carlasim/carla:0.9.11
-
+# change the carla version if running a different one
 docker run \
   --rm \
   --net=host \
