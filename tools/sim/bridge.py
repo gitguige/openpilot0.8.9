@@ -763,6 +763,7 @@ def bridge(q, Radar_Point_Array,N_radar_points):
   global FI_Type, FI_flag, frameIdx
   global vRel,dRel
   global aeb_alert,fcw_alert
+  global obstacle_drel #distance to front obstacle, used to trigger driver response
 
   fp_radar = open("results/radarlog.csv","w")
   fp_radar.write("frameIdx,dRel_truth,dRel,vRel")
@@ -1042,7 +1043,7 @@ def bridge(q, Radar_Point_Array,N_radar_points):
           throttle_out = 0
           FI_flag = 0
           brake_out = aeb_brake
-          print("AEB braking.")
+          print(f"AEB braking {aeb_brake}.")
 
       #execute fault injection
       if FI_flag > 0:
@@ -1156,7 +1157,7 @@ def bridge(q, Radar_Point_Array,N_radar_points):
         break
 
     #------------------------------------------------------
-    if driver_alerted_time == -1 and fault_duration>0 and (fcw_alert or alert or throttle_out>= 0.6 or speed>1.1*vEgo*0.4407 or brake_out>0.95): # or abs(patch.mean()>=0.15) #max gas//max brake//exceed speed limit
+    if driver_alerted_time == -1 and fault_duration>0 and (fcw_alert or alert or throttle_out>= 0.6 or speed>1.1*vEgo*0.4407 or brake_out>0.95 or obstacle_drel<5): # or abs(patch.mean()>=0.15) #max gas//max brake//exceed speed limit/unsafe following distance<5m
       driver_alerted_time =frameIdx #driver is alerted
 
     #Accident: collision 
