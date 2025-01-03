@@ -1,13 +1,15 @@
 # openpilot0.8.9
 This is an experiment platform with autonomous agent openpilot0.8.9 and simulator carla 9.11 with or without docker setups.
 
-# HOW To CITE:
+Link to Perception Attack Code: https://github.com/gitguige/CAP-Attack
+
+
+HOW To CITE:
 
 X. Zhou, A. Schmedding, H. Ren, L. Yang, P. Schowitz, E. Smirni, H. Alemzadeh, “Strategic Safety-Critical Attacks against an Advanced Driver Assistance System,” in the 52nd IEEE/IFIP International Conference on Dependable Systems and Networks (DSN 2022), 2022.
 
 X. Zhou, A. Chen, Ma. Kouzel, H. Ren, M. McCarty, C. Nita-Rotaru, and H. Alemzadeh, "Runtime Stealthy Perception Attacks against DNN-based Adaptive Cruise Control Systems," in ACM Asia Conference on Computer and Communications Security (ASIA CCS ’25), 2025.
 
-Link to Perception Attack Code: https://github.com/gitguige/CAP-Attack
 
 ## Recommended system
 * Ubuntu 20.04
